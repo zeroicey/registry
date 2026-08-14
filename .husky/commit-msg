@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# commit-msg hook: enforce Conventional Commits with commitlint.
+# Runs from the Bun package directory (api/) where commitlint is installed.
+
+# Make the commit message file path absolute before changing directory
+MSG_FILE="$1"
+case "$MSG_FILE" in
+  /*) ;;
+  *) MSG_FILE="$(pwd)/$MSG_FILE" ;;
+esac
+
+cd "$(git rev-parse --show-toplevel)/api" || {
+  echo "husky - commit-msg: cannot enter api/ (is the Bun project missing?)" >&2
+  exit 1
+}
+
+bunx --no-install commitlint --edit "$MSG_FILE"
