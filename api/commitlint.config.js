@@ -27,6 +27,8 @@ export default {
     'header-max-length': [2, 'always', 72],
     'subject-empty': [2, 'never'],
     'type-empty': [2, 'never'],
+    // Require a detailed body (what changed and why) — no one-liners
+    'body-empty': [2, 'never'],
     'subject-english-only': [2, 'always'],
   },
 };
