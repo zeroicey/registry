@@ -1,7 +1,7 @@
 # Agent tooling / workspace metadata
-.ai/
-.omo/
-.codegraph/
+.ai
+.omo
+.codegraph
 
 # Dependencies
 node_modules/
