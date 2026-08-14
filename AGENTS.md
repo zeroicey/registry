@@ -9,16 +9,8 @@ Guidelines for AI agents working in this repository.
 
 ## Git commits
 
-- Every commit is validated by Husky + commitlint (Conventional Commits): subject is `type: lowercase english summary` (≤ 72 chars); types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
-- Always add a detailed body after a blank line — what changed and why, in English. One-line commits are rejected.
-- Example:
-
-  ```
-  feat: add user pagination
-
-  add offset/limit params to the list endpoint and expose next/prev
-  cursors to keep responses small for large registries.
-  ```
+- Commits are validated by Husky + commitlint — rules live in `api/commitlint.config.js` (Conventional Commits, lowercase English subject ≤ 72 chars, body required). One-line commits are rejected.
+- Write a meaningful body: what changed and why. Don't pad it just to pass the check.
 
 ## Commands
 
