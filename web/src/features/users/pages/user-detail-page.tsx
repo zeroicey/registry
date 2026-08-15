@@ -19,6 +19,7 @@ import { useDeleteUser, useUser } from '../queries';
 const TAB_LINKS = [
   { to: 'basic', label: '基本信息' },
   { to: 'profile', label: '属性' },
+  { to: 'comments', label: '留言' },
 ];
 
 /** 详情页壳：头部信息条 + Tab 栏（嵌套子路由）+ Outlet。 */

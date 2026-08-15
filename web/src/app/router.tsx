@@ -23,6 +23,9 @@ const UserBasicTab = lazy(() =>
 const UserProfileTab = lazy(() =>
   import('@/features/users').then((m) => ({ default: m.UserProfileTab })),
 );
+const CommentsTab = lazy(() =>
+  import('@/features/comments').then((m) => ({ default: m.CommentsTab })),
+);
 
 /** Route config — the single place where every route is declared. */
 export const routes: RouteObject[] = [
@@ -41,6 +44,7 @@ export const routes: RouteObject[] = [
           { index: true, element: <Navigate to="basic" replace /> },
           { path: 'basic', element: <UserBasicTab /> },
           { path: 'profile', element: <UserProfileTab /> },
+          { path: 'comments', element: <CommentsTab /> },
         ],
       },
       { path: 'attributes', element: <AttributesPage /> },
