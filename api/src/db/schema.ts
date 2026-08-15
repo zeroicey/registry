@@ -62,7 +62,7 @@ export const users = pgTable(
   {
     id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
     realName: text('real_name').notNull(),
-    /** Business identifier (e.g. employee no.) — nullable, unique when set. */
+    /** National id — nullable, unique when set. */
     code: text('code'),
     /** Soft delete: NULL = active. Re-creating a code after delete is allowed. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
