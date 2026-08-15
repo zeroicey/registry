@@ -3,6 +3,8 @@
 .hunman
 .omo
 .codegraph
+# .pi/ 其余内容（APPEND_SYSTEM.md、extensions/、skills/）纳入版本管理；仅排除运行时状态
+.pi/decision-auditor/
 
 # Dependencies
 node_modules/
