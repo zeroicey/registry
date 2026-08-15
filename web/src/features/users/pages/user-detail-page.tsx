@@ -58,7 +58,7 @@ export function UserDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-3">
           <h1 className="text-xl font-semibold tracking-tight">{user.realName}</h1>
-          <span className="text-sm text-muted-foreground">工号 {user.code ?? '—'}</span>
+          <span className="text-sm text-muted-foreground">身份证号 {user.code ?? '—'}</span>
           <span className="text-xs text-muted-foreground">
             更新于 {formatDateTime(user.updatedAt)}
           </span>

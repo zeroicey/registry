@@ -81,9 +81,9 @@ export function UsersPage() {
           <Input
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="搜索姓名 / 工号"
+            placeholder="搜索姓名 / 身份证号"
             className="pl-8"
-            aria-label="搜索姓名或工号"
+            aria-label="搜索姓名或身份证号"
           />
         </div>
         <UserFilterBar defs={defs ?? []} filters={filters} onChange={setFilters} />

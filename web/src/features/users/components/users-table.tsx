@@ -28,7 +28,7 @@ export function UsersTable({ users, onView, onEdit, onDelete }: UsersTableProps)
       <TableHeader>
         <TableRow>
           <TableHead>姓名</TableHead>
-          <TableHead>工号</TableHead>
+          <TableHead>身份证号</TableHead>
           <TableHead>更新时间</TableHead>
           <TableHead className="w-28 text-right">操作</TableHead>
         </TableRow>

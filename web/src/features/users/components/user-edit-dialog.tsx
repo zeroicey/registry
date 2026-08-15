@@ -72,7 +72,7 @@ export function UserEditDialog({ open, onOpenChange, user }: UserEditDialogProps
             <FieldError message={errors.realName?.message} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="edit-code">工号（可选）</Label>
+            <Label htmlFor="edit-code">身份证号（可选）</Label>
             <Input id="edit-code" placeholder="如：1001" {...register('code')} />
             <FieldError message={errors.code?.message} />
           </div>

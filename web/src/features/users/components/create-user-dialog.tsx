@@ -102,7 +102,7 @@ export function CreateUserDialog({ open, onOpenChange, defs }: CreateUserDialogP
               <FieldError message={errors.realName?.message} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="user-code">工号（可选）</Label>
+              <Label htmlFor="user-code">身份证号（可选）</Label>
               <Input id="user-code" placeholder="如：1001" {...register('code')} />
               <FieldError message={errors.code?.message} />
             </div>

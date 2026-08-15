@@ -13,8 +13,8 @@ import { z } from 'zod';
 export const userCodeSchema = z
   .string()
   .trim()
-  .max(64, '工号最长 64 字')
-  .regex(/^[A-Za-z0-9_-]*$/, '工号仅含字母、数字、下划线与连字符');
+  .max(64, '身份证号最长 64 字')
+  .regex(/^[A-Za-z0-9_-]*$/, '身份证号仅含字母、数字、下划线与连字符');
 
 /** Basic-info form: realName is required, code may be blank (→ null on submit). */
 export const userBaseSchema = z.object({

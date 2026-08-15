@@ -70,7 +70,7 @@ export function UserBasicTab() {
           <FieldError message={errors.realName?.message} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="basic-code">工号（可选）</Label>
+          <Label htmlFor="basic-code">身份证号（可选）</Label>
           <Input id="basic-code" placeholder="如：1001" {...register('code')} />
           <FieldError message={errors.code?.message} />
         </div>
@@ -91,7 +91,7 @@ export function UserBasicTab() {
     <div className="max-w-md rounded-lg border bg-card px-4 py-2">
       <dl className="divide-y">
         <InfoRow label="姓名" value={user.realName} />
-        <InfoRow label="工号" value={user.code ?? '—'} />
+        <InfoRow label="身份证号" value={user.code ?? '—'} />
         <InfoRow label="创建时间" value={formatDateTime(user.createdAt)} />
         <InfoRow label="更新时间" value={formatDateTime(user.updatedAt)} />
       </dl>
