@@ -57,14 +57,23 @@ export interface AttributeConfig {
 }
 
 /** 登记对象（人员） */
-export const users = pgTable('users', {
-  id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  realName: text('real_name').notNull(),
-  /** Business identifier (e.g. employee no.) — nullable, unique when set. */
-  code: text('code').unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const users = pgTable(
+  'users',
+  {
+    id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+    realName: text('real_name').notNull(),
+    /** Business identifier (e.g. employee no.) — nullable, unique when set. */
+    code: text('code'),
+    /** Soft delete: NULL = active. Re-creating a code after delete is allowed. */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // Code is unique only among active users, so a soft-deleted code can be reused.
+    uniqueIndex('users_code_active_unique').on(table.code).where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
 /** 字段模板（表单设计器）：动态定义要收集的字段 */
 export const attributes = pgTable(

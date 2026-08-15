@@ -1,6 +1,9 @@
 import { Hono } from 'hono';
 import { requestLogger, security } from '@/middleware';
+import { attributesRouter } from '@/modules/attributes/attributes.router';
+import { commentsRouter } from '@/modules/comments/comments.router';
 import { healthRouter } from '@/modules/health/health.router';
+import { usersRouter } from '@/modules/users/users.router';
 import { onError } from '@/shared/error-handler';
 import { Msg } from '@/shared/messages';
 
@@ -21,6 +24,9 @@ export function createApp(): Hono {
 
   // Module routers.
   app.route('/health', healthRouter);
+  app.route('/attributes', attributesRouter);
+  app.route('/users', usersRouter);
+  app.route('/', commentsRouter); // POST/GET /users/:userId/comments, PATCH/DELETE /comments/:id
 
   return app;
 }

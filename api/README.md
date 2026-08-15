@@ -64,13 +64,39 @@ anyway); set concrete origins to enable it.
 
 ## API
 
-Base URL: `http://localhost:3000`
+Base URL: `http://localhost:3000`（dev 默认端口见 `PORT`）
 
-| Method | Path           | Description                          |
-| ------ | -------------- | ------------------------------------ |
+### Attributes（字段模板）
+
+| Method | Path                  | Description                                          |
+| ------ | --------------------- | ---------------------------------------------------- |
+| GET    | `/attributes`         | 列表（active only，按 `config.sortOrder` 排序；`page`/`pageSize`） |
+| POST   | `/attributes`         | 创建（`key` 业务名、`label`、`type`、`config` 校验规则） |
+| GET    | `/attributes/:id`     | 详情                                                |
+| PATCH  | `/attributes/:id`     | 更新 label/type/config；**有值存在时改 type 返回 409** |
+| DELETE | `/attributes/:id`     | 软删除（204）；软删后同 `key` 可重建                 |
+
+### Users（登记对象）
+
+| Method | Path                  | Description                                          |
+| ------ | --------------------- | ---------------------------------------------------- |
+| GET    | `/users`              | 列表（`page`/`pageSize`/`search` 姓名或编号模糊；`?<attributeKey>=值` 精确筛选） |
+| POST   | `/users`              | 创建（`realName`、可选 `code`、可选 `profiles`：`{gender:"男"}` 按 config 校验） |
+| GET    | `/users/:id`          | 详情（`profile` 为按业务 key 组装的值对象）           |
+| PATCH  | `/users/:id`          | 更新 `realName`/`code`                               |
+| PATCH  | `/users/:id/profile`  | 合并补丁更新档案：按 config 校验 → 事务内 upsert 值 + 写变更历史 |
+| DELETE | `/users/:id`          | 软删除（204）                                        |
+
+### Comments（备注）
+
+| Method | Path                          | Description                  |
+| ------ | ----------------------------- | ---------------------------- |
+| GET    | `/users/:userId/comments`     | 列表（`page`/`pageSize`，created_at 倒序） |
+| POST   | `/users/:userId/comments`     | 创建（`content` 1..2000）    |
+| PATCH  | `/comments/:id`               | 更新内容                     |
+| DELETE | `/comments/:id`               | 删除（204）                  |
+
 | GET    | `/health`      | Liveness probe (checks the DB)       |
-
-> v1 模块（users / attributes / comments）开发中；领域 API 将挂在 `/users`、`/attributes` 等路由下。
 
 ### Unified response contract
 
@@ -98,8 +124,9 @@ Every response follows `{ success, message, code?, data?, error? }`:
 Error codes: `VALIDATION` (400) · `BAD_REQUEST` (400) · `UNAUTHORIZED` (401) ·
 `FORBIDDEN` (403) · `NOT_FOUND` (404) · `CONFLICT` (409) ·
 `REQUEST_TIMEOUT` (408) · `PAYLOAD_TOO_LARGE` (413) · `RATE_LIMITED` (429) ·
-`SERVICE_UNAVAILABLE` (503) · `INTERNAL` (500) · module-specific codes as
-they land (e.g. `ATTRIBUTE_NOT_FOUND`).
+`SERVICE_UNAVAILABLE` (503) · `INTERNAL` (500) · module-specific:
+`USER_NOT_FOUND` (404) · `ATTRIBUTE_NOT_FOUND` (404) · `ATTRIBUTE_KEY_EXISTS`
+(409) · `ATTRIBUTE_TYPE_LOCKED` (409) · `COMMENT_NOT_FOUND` (404).
 
 ## Database
 
@@ -110,7 +137,7 @@ generates migrations (`bun run db:generate`) and applies them
 
 | Table | Purpose |
 | ----- | ------- |
-| `users` | 登记对象（人员）；`code` 为可空唯一业务编号 |
+| `users` | 登记对象（人员）；`code` 为可空唯一业务编号（未删记录间唯一）；软删 = `deleted_at` |
 | `attributes` | 字段模板：`key`（业务 key，值表引用它）、`type`（string/number/bool/date/select）、`config` JSONB（required/options/min/max/regex/sortOrder…）；软删 = `deleted_at`，key 在未删记录间唯一 |
 | `attribute_values` | 动态字段值，PK `(user_id, attribute_id)`，替代旧版 users.profiles JSONB blob |
 | `attribute_value_history` | 变更留痕：同事务写 old/new，`changed_by` 预留（auth 后启用） |
@@ -129,7 +156,7 @@ src/
 ├── db/                 # Drizzle client + centralized schema (users, attributes, …)
 ├── middleware/         # security chain + pino-http request logging
 ├── shared/             # AppError, onError, validator, Res builder, Msg, logger
-└── modules/            # one folder per domain (health; users/attributes/comments coming)
+└── modules/            # one folder per domain (health, attributes, users, comments)
 ```
 
 Rules: validation lives at the route layer via `validator.json/query/params`

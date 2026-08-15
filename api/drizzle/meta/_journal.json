@@ -15,6 +15,13 @@
       "when": 1786776220771,
       "tag": "0001_aberrant_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786777279886,
+      "tag": "0002_broken_magus",
+      "breakpoints": true
     }
   ]
 }

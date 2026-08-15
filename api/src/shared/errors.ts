@@ -16,8 +16,11 @@ export const ERROR_CODES = {
   SERVICE_UNAVAILABLE: 503,
   INTERNAL: 500,
   // ── module-specific codes ──
-  TODO_NOT_FOUND: 404,
   USER_NOT_FOUND: 404,
+  ATTRIBUTE_NOT_FOUND: 404,
+  ATTRIBUTE_KEY_EXISTS: 409,
+  ATTRIBUTE_TYPE_LOCKED: 409,
+  COMMENT_NOT_FOUND: 404,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;
