@@ -7,9 +7,12 @@ import { env } from '@/config/env';
  *   instead of being thrown by ky, so feature code only ever sees typed data.
  * - `credentials: "include"` — cookies are sent (auth-ready).
  * - `retry: 1` — one automatic retry for transient failures.
+ *
+ * No `prefix` option: ky prepends it to ANY string input (absolute URLs
+ * included), which would double up with `apiUrl()`/`resolveApiPath()` — the
+ * full request URL (base + path + query) is always built by `apiUrl()`.
  */
 export const apiClient = ky.create({
-  ...(env.VITE_API_BASE_URL ? { prefix: env.VITE_API_BASE_URL } : {}),
   credentials: 'include',
   throwHttpErrors: false,
   retry: 1,

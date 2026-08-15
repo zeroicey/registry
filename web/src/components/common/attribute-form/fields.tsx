@@ -3,6 +3,8 @@ import {
   Controller,
   type ControllerRenderProps,
   type FieldErrors,
+  type FieldPath,
+  type FieldValues,
 } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,17 +20,23 @@ import {
 import { Switch } from '@/components/ui/switch';
 import type { AttributeDef } from '@/types/attribute';
 
-interface AttributeFieldsProps {
+interface AttributeFieldsProps<TFieldValues extends FieldValues> {
   /** Attribute definitions driving the rendered fields (already filtered/sorted upstream if needed). */
   defs: AttributeDef[];
-  /** react-hook-form control over the profile values object (keyed by attribute key). */
-  control: Control<Record<string, unknown>>;
-  /** Field errors keyed by attribute key (formState.errors). */
-  errors?: FieldErrors<Record<string, unknown>>;
+  /** react-hook-form control over the form that hosts the profile fields. */
+  control: Control<TFieldValues>;
+  /** Field errors keyed by attribute key (already scoped to the prefix when set). */
+  errors?: FieldErrors<Record<string, unknown>> | undefined;
+  /**
+   * Optional field-path prefix, e.g. `profile` binds each field to `profile.<key>`.
+   * Leave unset when the form value IS the flat profile object.
+   */
+  namePrefix?: string;
 }
 
 function asString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+  // number inputs hold string values; pre-filled numeric profiles arrive as numbers.
+  return value === undefined || value === null ? '' : String(value);
 }
 
 function FieldError({ message }: { message?: string | undefined }) {
@@ -42,7 +50,12 @@ function FieldError({ message }: { message?: string | undefined }) {
  * value types follow the backend contract: string / number / bool / date
  * (YYYY-MM-DD) / select.
  */
-export function AttributeFields({ defs, control, errors }: AttributeFieldsProps) {
+export function AttributeFields<TFieldValues extends FieldValues>({
+  defs,
+  control,
+  errors,
+  namePrefix,
+}: AttributeFieldsProps<TFieldValues>) {
   const sorted = [...defs].sort((a, b) => (a.config.sortOrder ?? 0) - (b.config.sortOrder ?? 0));
 
   // Group fields by config.group (fields without a group render first).
@@ -60,9 +73,13 @@ export function AttributeFields({ defs, control, errors }: AttributeFieldsProps)
         <fieldset key={group || '__ungrouped'} className="flex flex-col gap-3">
           {group && <legend className="text-sm font-medium text-muted-foreground">{group}</legend>}
           {items.map((item) => (
-            <Controller
+            <Controller<TFieldValues>
               key={item.key}
-              name={item.key}
+              name={
+                (namePrefix
+                  ? `${namePrefix}.${item.key}`
+                  : item.key) as unknown as FieldPath<TFieldValues>
+              }
               control={control}
               render={({ field }) => (
                 <div className="flex flex-col gap-1.5">
@@ -89,9 +106,10 @@ export function AttributeFields({ defs, control, errors }: AttributeFieldsProps)
   );
 }
 
-type ProfileField = ControllerRenderProps<Record<string, unknown>>;
-
-function renderControl(item: AttributeDef, field: ProfileField) {
+function renderControl<TFieldValues extends FieldValues>(
+  item: AttributeDef,
+  field: ControllerRenderProps<TFieldValues>,
+) {
   const inputId = `attr-${item.key}`;
   const common = { id: inputId, name: field.name, onBlur: field.onBlur, ref: field.ref };
 

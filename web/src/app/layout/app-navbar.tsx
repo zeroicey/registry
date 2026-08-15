@@ -8,7 +8,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { useUIStore } from '@/stores/ui-store';
 
 const NAV_LINKS = [
-  { to: '/', label: '首页' },
+  { to: '/users', label: '人员管理' },
   { to: '/attributes', label: '属性配置' },
 ];
 
