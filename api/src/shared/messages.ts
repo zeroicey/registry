@@ -17,13 +17,6 @@ export const Msg = {
   VALIDATION_ERROR: 'Validation failed',
   // ── health ──
   HEALTH_OK: 'Service is healthy',
-  // ── todos ──
-  TODO_NOT_FOUND: 'Todo not found',
-  TODO_CREATED: 'Todo created',
-  TODO_FETCHED: 'Todo fetched',
-  TODO_LISTED: 'Todos fetched',
-  TODO_UPDATED: 'Todo updated',
-  TODO_DELETED: 'Todo deleted',
 } as const satisfies Record<string, string>;
 
 export type Message = (typeof Msg)[keyof typeof Msg];

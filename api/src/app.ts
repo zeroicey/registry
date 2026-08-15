@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { requestLogger, security } from '@/middleware';
 import { healthRouter } from '@/modules/health/health.router';
-import { todosRouter } from '@/modules/todos';
 import { onError } from '@/shared/error-handler';
 import { Msg } from '@/shared/messages';
 
@@ -22,7 +21,6 @@ export function createApp(): Hono {
 
   // Module routers.
   app.route('/health', healthRouter);
-  app.route('/todos', todosRouter);
 
   return app;
 }

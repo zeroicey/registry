@@ -69,11 +69,8 @@ Base URL: `http://localhost:3000`
 | Method | Path           | Description                          |
 | ------ | -------------- | ------------------------------------ |
 | GET    | `/health`      | Liveness probe (checks the DB)       |
-| POST   | `/todos`       | Create a todo (JSON body)            |
-| GET    | `/todos`       | List todos (`page`, `pageSize`, `completed`, `userId`) |
-| GET    | `/todos/:id`   | Get one todo                         |
-| PATCH  | `/todos/:id`   | Partial update (JSON body)           |
-| DELETE | `/todos/:id`   | Delete (204)                         |
+
+> v1 模块（users / attributes / comments）开发中；领域 API 将挂在 `/users`、`/attributes` 等路由下。
 
 ### Unified response contract
 
@@ -86,23 +83,41 @@ Every response follows `{ success, message, code?, data?, error? }`:
   the business error identifier for programmatic handling.
 
 ```json
-// 201 POST /todos
-{ "success": true, "message": "Todo created",
-  "data": { "id": "…", "title": "Buy milk", "completed": false, "priority": 0 } }
+// 201 (example)
+{ "success": true, "message": "Created successfully",
+  "data": { "id": 1, "realName": "张三" } }
 
-// 400 POST /todos (invalid body)
+// 400 (invalid body)
 { "success": false, "message": "Validation failed", "code": "VALIDATION",
-  "error": [ { "path": ["title"], "message": "Title is required" } ] }
+  "error": [ { "path": ["realName"], "message": "Required" } ] }
 
-// 404 GET /todos/unknown
-{ "success": false, "message": "Todo not found", "code": "TODO_NOT_FOUND" }
+// 404 (unknown resource)
+{ "success": false, "message": "Resource not found", "code": "NOT_FOUND" }
 ```
 
 Error codes: `VALIDATION` (400) · `BAD_REQUEST` (400) · `UNAUTHORIZED` (401) ·
 `FORBIDDEN` (403) · `NOT_FOUND` (404) · `CONFLICT` (409) ·
 `REQUEST_TIMEOUT` (408) · `PAYLOAD_TOO_LARGE` (413) · `RATE_LIMITED` (429) ·
-`SERVICE_UNAVAILABLE` (503) · `INTERNAL` (500) · module-specific codes such as
-`TODO_NOT_FOUND` (404).
+`SERVICE_UNAVAILABLE` (503) · `INTERNAL` (500) · module-specific codes as
+they land (e.g. `ATTRIBUTE_NOT_FOUND`).
+
+## Database
+
+PostgreSQL schema is defined **only** in `src/db/schema.ts`; drizzle-kit
+generates migrations (`bun run db:generate`) and applies them
+(`bun run db:migrate`). Visual walkthrough (local-only, gitignored):
+`.hunman/db-design.html`.
+
+| Table | Purpose |
+| ----- | ------- |
+| `users` | 登记对象（人员）；`code` 为可空唯一业务编号 |
+| `attributes` | 字段模板：`key`（业务 key，值表引用它）、`type`（string/number/bool/date/select）、`config` JSONB（required/options/min/max/regex/sortOrder…）；软删 = `deleted_at`，key 在未删记录间唯一 |
+| `attribute_values` | 动态字段值，PK `(user_id, attribute_id)`，替代旧版 users.profiles JSONB blob |
+| `attribute_value_history` | 变更留痕：同事务写 old/new，`changed_by` 预留（auth 后启用） |
+| `comments` | 备注，挂在登记对象下 |
+
+- 所有表由 DB 触发器 `update_updated_at_column()` 自动维护 `updated_at`（见 `drizzle/0001_*` 自定义迁移）。
+- `attachments`（依赖 MinIO）推迟到 v1.1，暂不建表。
 
 ## Architecture
 
@@ -111,24 +126,22 @@ src/
 ├── index.ts            # entry: create app + start Bun.serve
 ├── app.ts              # global middleware (logging + security), onError, routers
 ├── env.ts              # typed env loading with Zod (fail-fast)
-├── db/                 # Drizzle client + centralized schema (users, todos)
+├── db/                 # Drizzle client + centralized schema (users, attributes, …)
 ├── middleware/         # security chain + pino-http request logging
 ├── shared/             # AppError, onError, validator, Res builder, Msg, logger
-└── modules/            # one folder per domain (health, todos)
-    └── todos/
-        ├── todos.router.ts    # routes + zValidator middleware (no parsing in handlers)
-        ├── todos.handler.ts   # thin: c.req.valid(...) → service → response, no try/catch
-        ├── todos.service.ts   # business logic, throws AppError; repository DI for tests
-        ├── todos.schema.ts    # Zod schemas (json/query/param)
-        ├── todos.types.ts     # inferred types + DTOs
-        ├── todos.mappers.ts   # DB ↔ domain mapping
-        └── todos.service.test.ts
+└── modules/            # one folder per domain (health; users/attributes/comments coming)
 ```
 
 Rules: validation lives at the route layer via `validator.json/query/params`
 (`ZodError` → `AppError(VALIDATION)`); handlers never parse manually and never
 wrap in try/catch; `onError` maps `AppError`/`HTTPException`/`SyntaxError`/unknown
 to the unified envelope (unknown errors are logged, stacks never leaked).
+
+Module shape (per domain folder): `*.router.ts` (routes + zValidator, no
+parsing in handlers) → `*.handler.ts` (thin: `c.req.valid(...)` → service →
+response, no try/catch) → `*.service.ts` (business logic, throws `AppError`;
+repository interface for test DI) → `*.schema.ts` (Zod) → `*.types.ts`
+(inferred types + DTOs) → `*.mappers.ts` (DB ↔ domain) → `*.service.test.ts`.
 
 ## Docker
 
@@ -172,6 +185,8 @@ environment variables injected at deploy time.
 
 ## Testing
 
-`bun test` runs the service test suite against an in-memory fake repository —
-no database required. The repository interface (`TodoRepository`) makes this
-swappable for the real Drizzle implementation in the HTTP layer.
+`bun test` runs Bun's test runner with no database required: module tests use a
+repository interface (`TodoRepository`-style) backed by an in-memory fake, so
+the HTTP layer can swap in the real Drizzle implementation. The scaffold todo
+tests were removed together with the scaffold; write module tests following
+that pattern as modules land.
