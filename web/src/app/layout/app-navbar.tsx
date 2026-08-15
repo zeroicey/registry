@@ -7,7 +7,10 @@ import { env } from '@/config/env';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useUIStore } from '@/stores/ui-store';
 
-const NAV_LINKS = [{ to: '/', label: '首页' }];
+const NAV_LINKS = [
+  { to: '/', label: '首页' },
+  { to: '/attributes', label: '属性配置' },
+];
 
 export function AppNavbar() {
   const isDesktop = useMediaQuery('(min-width: 768px)');

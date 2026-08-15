@@ -16,3 +16,11 @@ export interface ApiEnvelope<T = unknown> {
   /** Extra failure details (validation issues, etc.). */
   error?: unknown;
 }
+
+/** Backend pagination envelope (see api/src/modules — PaginatedResult in each module's types.ts). */
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

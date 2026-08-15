@@ -10,6 +10,9 @@ const WelcomePage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('@/app/pages/not-found').then((m) => ({ default: m.NotFoundPage })),
 );
+const AttributesPage = lazy(() =>
+  import('@/features/attributes').then((m) => ({ default: m.AttributesPage })),
+);
 
 /** Route config — the single place where every route is declared. */
 export const routes: RouteObject[] = [
@@ -18,6 +21,7 @@ export const routes: RouteObject[] = [
     element: <AppLayout />,
     children: [
       { index: true, element: <WelcomePage /> },
+      { path: 'attributes', element: <AttributesPage /> },
       // Fallback: unknown paths render the not-found page inside the layout.
       { path: '*', element: <NotFoundPage /> },
     ],
