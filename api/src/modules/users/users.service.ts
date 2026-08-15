@@ -147,7 +147,36 @@ export class UserService {
           message: `unknown attribute filter: ${key}`,
         });
       }
-      filters.push({ attributeId: attr.id, value });
+      // Normalize the raw query string to the same typed value shape that
+      // profile writes store (bool → true/false, number → JSON number), so
+      // the JSONB equality match in the repository lines up. string/select/
+      // date filters stay raw strings.
+      let normalized: unknown = value;
+      switch (attr.type) {
+        case 'number': {
+          const n = Number(value);
+          if (!Number.isFinite(n)) {
+            throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
+              message: `attribute filter "${key}" must be a number`,
+            });
+          }
+          normalized = n;
+          break;
+        }
+        case 'bool': {
+          if (value !== 'true' && value !== 'false') {
+            throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
+              message: `attribute filter "${key}" must be "true" or "false"`,
+            });
+          }
+          normalized = value === 'true';
+          break;
+        }
+        default:
+          // string / select / date stay as raw strings.
+          break;
+      }
+      filters.push({ attributeId: attr.id, value: normalized });
     }
     return filters;
   }

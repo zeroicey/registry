@@ -4,7 +4,7 @@ import type { AttributeRepository } from '@/modules/attributes/attributes.servic
 import type { ProfileRepository } from './profile.repository';
 import type { UserRepository } from './users.repository';
 import { UserService } from './users.service';
-import type { ProfileEntry } from './users.types';
+import type { ProfileEntry, AttributeFilter } from './users.types';
 
 function makeUser(id: number, overrides: Partial<User> = {}): User {
   const now = new Date();
@@ -43,6 +43,7 @@ function makeFakes() {
     2,
     makeAttribute(2, { key: 'gender', type: 'select', config: { options: ['男', '女'] } }),
   );
+  attrsStore.set(3, makeAttribute(3, { key: 'active', type: 'bool' }));
   for (const a of attrsStore.values()) attrByKey.set(a.key, a);
 
   let nextId = 1;
@@ -51,6 +52,8 @@ function makeFakes() {
   const patchedEntries: ProfileEntry[][] = [];
   const patchedUserIds: number[] = [];
   const softDeleted: number[] = [];
+
+  const listFilters: AttributeFilter[][] = [];
 
   const users: UserRepository = {
     async insert(data) {
@@ -89,12 +92,18 @@ function makeFakes() {
       usersStore.set(id, { ...u, deletedAt: new Date() });
       return true;
     },
-    async list({ page, pageSize, search }) {
+    async list(options) {
+      listFilters.push(options.attributeFilters ?? []);
       let items = [...usersStore.values()].filter((u) => u.deletedAt === null);
-      if (search)
-        items = items.filter((u) => u.realName.includes(search) || (u.code ?? '').includes(search));
+      if (options.search)
+        items = items.filter(
+          (u) => u.realName.includes(options.search!) || (u.code ?? '').includes(options.search!),
+        );
       const total = items.length;
-      return { items: items.slice((page - 1) * pageSize, page * pageSize), total };
+      return {
+        items: items.slice((options.page - 1) * options.pageSize, options.page * options.pageSize),
+        total,
+      };
     },
   };
 
@@ -167,6 +176,7 @@ function makeFakes() {
     patchedUserIds,
     softDeleted,
     attrByKey,
+    listFilters,
   };
 }
 
@@ -249,11 +259,35 @@ describe('UserService', () => {
   });
 
   test('list resolves attribute filters and rejects unknown keys', async () => {
-    const { service } = makeFakes();
+    const { service, listFilters } = makeFakes();
     const result = await service.list({ page: 1, pageSize: 20, gender: '男' });
     expect(result.total).toBe(0);
+    // select filter stays a raw string
+    expect(listFilters[0]).toEqual([{ attributeId: 2, value: '男' }]);
 
     await expect(service.list({ page: 1, pageSize: 20, bogus: 'x' })).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+    });
+  });
+
+  test('list normalizes number and bool filter values to typed JSON', async () => {
+    const { service, listFilters } = makeFakes();
+    await service.list({ page: 1, pageSize: 20, age: '25', active: 'true' });
+    expect(listFilters[0]).toEqual([
+      { attributeId: 1, value: 25 }, // number: string → JSON number
+      { attributeId: 3, value: true }, // bool: "true" → true
+    ]);
+
+    await service.list({ page: 1, pageSize: 20, active: 'false' });
+    expect(listFilters[1]).toEqual([{ attributeId: 3, value: false }]);
+  });
+
+  test('list rejects malformed number and bool filter values', async () => {
+    const { service } = makeFakes();
+    await expect(service.list({ page: 1, pageSize: 20, age: 'abc' })).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+    });
+    await expect(service.list({ page: 1, pageSize: 20, active: 'yes' })).rejects.toMatchObject({
       code: 'BAD_REQUEST',
     });
   });
