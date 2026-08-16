@@ -40,11 +40,3 @@ jobs:
             ghcr.io/zeroicey/registry-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      # hpcore pulls anonymously, so the package must stay public. The
-      # GITHUB_TOKEN carries packages:write which allows visibility changes.
-      - name: Ensure package visibility is public
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api -X PATCH /user/packages/container/registry-api -f visibility=public
