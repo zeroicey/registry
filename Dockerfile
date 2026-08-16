@@ -32,9 +32,11 @@ WORKDIR /app
 # Fast installs from the domestic mirror (same rationale as the web stage).
 ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
 
-# Timezone + tzdata
+# Timezone + tzdata — apt from the domestic mirror too (hpcore cannot
+# reach deb.debian.org reliably).
 ENV TZ=Asia/Shanghai
-RUN apt-get update -qq \
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update -qq \
     && apt-get install -y -qq --no-install-recommends tzdata ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
