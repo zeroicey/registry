@@ -2,7 +2,7 @@
 # Deploy conventions follow serenique on hpcore (see ~/serenique-deploy/):
 #   - project dir + .env (secrets live in .env)
 #   - restart: unless-stopped
-#   - services bound to 127.0.0.1 + 10.126.126.2 (LAN)
+#   - LAN binding via ${LAN_IP} (set in .env, not committed)
 #   - image pulled from ghcr.io (GitHub Actions builds it on every push)
 #
 # Ports: host 3100 -> container 3000 (3000/3001/3002 are taken on hpcore).
@@ -20,7 +20,7 @@ services:
       PORT: 3000
     ports:
       - "127.0.0.1:3100:3000"
-      - "10.126.126.2:3100:3000"
+      - "${LAN_IP}:3100:3000"
     healthcheck:
       test:
         [
