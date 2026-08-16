@@ -34,8 +34,6 @@ export const attributeFormSchema = z
     label: z.string().trim().min(1, '请输入名称').max(100, '名称最长 100 字'),
     type: attributeTypeSchema,
     // --- generic config (all types) ---
-    required: z.boolean(),
-    group: z.string().trim().max(64, '分组最长 64 字').optional(),
     sortOrder: optionalNumberString.optional(),
     help: z.string().trim().max(256, '帮助文本最长 256 字').optional(),
     // --- type-specific config ---
@@ -105,8 +103,6 @@ export function toUpdateInput(values: AttributeFormValues): UpdateAttributeInput
 
 function toConfig(values: AttributeFormValues): AttributeConfig {
   const config: AttributeConfig = {};
-  if (values.required) config.required = true;
-  if (values.group) config.group = values.group;
   if (values.sortOrder) config.sortOrder = Number(values.sortOrder);
   if (values.help) config.help = values.help;
 
@@ -134,8 +130,6 @@ export function toFormValues(attribute: AttributeDef): AttributeFormValues {
     key: attribute.key,
     label: attribute.label,
     type: attribute.type,
-    required: attribute.config.required ?? false,
-    group: attribute.config.group ?? '',
     sortOrder: attribute.config.sortOrder?.toString() ?? '',
     help: attribute.config.help ?? '',
     optionsRaw: (attribute.config.options ?? []).join('\n'),

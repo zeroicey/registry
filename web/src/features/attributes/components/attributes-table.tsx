@@ -21,7 +21,6 @@ const TYPE_LABELS: Record<AttributeType, string> = {
 /** Compact human-readable summary of an attribute's config rules. */
 export function configSummary(config: AttributeConfig): string {
   const parts: string[] = [];
-  if (config.required) parts.push('必填');
   if (config.options !== undefined && config.options.length > 0) {
     parts.push(`${config.options.length} 个选项`);
   }
@@ -57,14 +56,7 @@ export function AttributesTable({ attributes, onEdit, onDelete }: AttributesTabl
       <TableBody>
         {attributes.map((attribute) => (
           <TableRow key={attribute.id}>
-            <TableCell className="font-medium">
-              {attribute.label}
-              {attribute.config.required && (
-                <span className="ml-1 text-destructive" aria-hidden="true">
-                  *
-                </span>
-              )}
-            </TableCell>
+            <TableCell className="font-medium">{attribute.label}</TableCell>
             <TableCell>
               <code className="rounded bg-muted px-1 py-0.5 text-xs">{attribute.key}</code>
             </TableCell>

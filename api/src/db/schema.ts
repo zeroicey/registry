@@ -18,7 +18,7 @@ import {
  * Design decisions (see ../.ai/decisions.md, 2025-08-15):
  * - Attribute values live in a normalized `attribute_values` table instead of
  *   a JSONB blob on users: per-field upserts, indexed filtering, history.
- * - `attributes.config` carries validation/form rules (required, options,
+ * - `attributes.config` carries validation/form rules (options,
  *   min/max, regex, sort_order, ...); app layer builds Zod validators from it.
  * - Soft delete = `deleted_at IS NOT NULL` + partial unique index on `key`.
  * - `attachments` is deferred to v1.1 (needs MinIO) — not defined here yet.
@@ -37,12 +37,8 @@ export type AttributeType = (typeof attributeTypeEnum.enumValues)[number];
 
 /** Validation & form rules for an attribute — validated by Zod at the app layer. */
 export interface AttributeConfig {
-  /** Field must be present on the user profile. */
-  required?: boolean;
   /** Form rendering order (ascending). */
   sortOrder?: number;
-  /** Form group/category label. */
-  group?: string;
   /** Allowed values for `select` type. */
   options?: string[];
   /** Inclusive bounds for `number`. */
@@ -84,7 +80,7 @@ export const attributes = pgTable(
     key: text('key').notNull(),
     label: text('label').notNull(),
     type: attributeTypeEnum('type').notNull(),
-    /** Validation/form rules, e.g. { required, options, min, max, sortOrder }. */
+    /** Validation/form rules, e.g. { options, min, max, sortOrder, regex }. */
     config: jsonb('config').$type<AttributeConfig>().notNull().default({}),
     /** Soft delete: NULL = active. Re-creating a key after delete is allowed. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

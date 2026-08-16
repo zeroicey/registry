@@ -12,12 +12,8 @@ export type AttributeType = 'string' | 'number' | 'bool' | 'date' | 'select';
 
 /** Validation & form rules carried by `attributes.config` (JSONB). */
 export interface AttributeConfig {
-  /** Field must be present on the user profile. */
-  required?: boolean;
   /** Form rendering order (ascending). */
   sortOrder?: number;
-  /** Form group/category label. */
-  group?: string;
   /** Allowed values for `select` type — required when type=select. */
   options?: string[];
   /** Inclusive bounds: `number` → numeric bounds; `string` → min/max length. */

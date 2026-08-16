@@ -9,9 +9,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectPopup,
   SelectRoot,
   SelectTrigger,
@@ -58,49 +56,28 @@ export function AttributeFields<TFieldValues extends FieldValues>({
 }: AttributeFieldsProps<TFieldValues>) {
   const sorted = [...defs].sort((a, b) => (a.config.sortOrder ?? 0) - (b.config.sortOrder ?? 0));
 
-  // Group fields by config.group (fields without a group render first).
-  const grouped = new Map<string, AttributeDef[]>();
-  for (const item of sorted) {
-    const group = item.config.group ?? '';
-    const bucket = grouped.get(group) ?? [];
-    bucket.push(item);
-    grouped.set(group, bucket);
-  }
-
   return (
     <div className="flex flex-col gap-4">
-      {[...grouped.entries()].map(([group, items]) => (
-        <fieldset key={group || '__ungrouped'} className="flex flex-col gap-3">
-          {group && <legend className="text-sm font-medium text-muted-foreground">{group}</legend>}
-          {items.map((item) => (
-            <Controller<TFieldValues>
-              key={item.key}
-              name={
-                (namePrefix
-                  ? `${namePrefix}.${item.key}`
-                  : item.key) as unknown as FieldPath<TFieldValues>
-              }
-              control={control}
-              render={({ field }) => (
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={`attr-${item.key}`}>
-                    {item.label}
-                    {item.config.required && (
-                      <span className="ml-0.5 text-destructive" aria-hidden="true">
-                        *
-                      </span>
-                    )}
-                  </Label>
-                  {renderControl(item, field)}
-                  {item.config.help && (
-                    <p className="text-xs text-muted-foreground">{item.config.help}</p>
-                  )}
-                  <FieldError message={errors?.[item.key]?.message} />
-                </div>
+      {sorted.map((item) => (
+        <Controller<TFieldValues>
+          key={item.key}
+          name={
+            (namePrefix
+              ? `${namePrefix}.${item.key}`
+              : item.key) as unknown as FieldPath<TFieldValues>
+          }
+          control={control}
+          render={({ field }) => (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`attr-${item.key}`}>{item.label}</Label>
+              {renderControl(item, field)}
+              {item.config.help && (
+                <p className="text-xs text-muted-foreground">{item.config.help}</p>
               )}
-            />
-          ))}
-        </fieldset>
+              <FieldError message={errors?.[item.key]?.message} />
+            </div>
+          )}
+        />
       ))}
     </div>
   );
@@ -159,22 +136,11 @@ function renderControl<TFieldValues extends FieldValues>(
             <SelectValue placeholder="请选择" />
           </SelectTrigger>
           <SelectPopup>
-            {item.config.group ? (
-              <SelectGroup>
-                <SelectLabel>{item.label}</SelectLabel>
-                {(item.config.options ?? []).map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ) : (
-              (item.config.options ?? []).map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
-                </SelectItem>
-              ))
-            )}
+            {(item.config.options ?? []).map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
           </SelectPopup>
         </SelectRoot>
       );

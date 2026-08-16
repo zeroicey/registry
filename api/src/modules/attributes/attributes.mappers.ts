@@ -15,7 +15,7 @@ export function toDto(attr: Attribute): AttributeDto {
 }
 
 /**
- * Zod's optional() output types (`required?: boolean | undefined`) are not
+ * Zod's optional() output types (`sortOrder?: number | undefined`) are not
  * assignable to the AttributeConfig interface under exactOptionalPropertyTypes,
  * so the structurally-identical value is cast here, at the boundary.
  */

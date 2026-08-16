@@ -63,21 +63,16 @@ export function buildValueSchema(type: AttributeType, config: AttributeConfig): 
 
 /**
  * Build the Zod schema for a profile object keyed by attribute business key.
- * `required` config makes the field mandatory; other fields accept empty input.
+ * Every field accepts empty input (blank clears to undefined); type-specific
+ * rules (min/max/regex/options) still apply when a value is present.
  * Mirrors the backend's `buildValueValidator` (api/src/modules/attributes/validation.ts).
  */
 export function buildProfileSchema(defs: AttributeDef[]): z.ZodObject<Record<string, z.ZodType>> {
   const shape: Record<string, z.ZodType> = {};
   for (const def of defs) {
-    let schema = buildValueSchema(def.type, def.config);
-    if (def.config.required) {
-      // Required fields must be non-empty (blank string counts as unfilled).
-      schema = schema.refine((value) => value !== '', '此项必填');
-    } else {
-      // preprocess BEFORE optional so blank input clears to undefined.
-      schema = z.preprocess(emptyToUndefined, schema.optional());
-    }
-    shape[def.key] = schema;
+    const schema = buildValueSchema(def.type, def.config);
+    // preprocess BEFORE optional so blank input clears to undefined.
+    shape[def.key] = z.preprocess(emptyToUndefined, schema.optional());
   }
   return z.object(shape);
 }

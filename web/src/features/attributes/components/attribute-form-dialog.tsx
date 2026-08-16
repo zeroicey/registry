@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import type { AttributeDef } from '@/types/attribute';
 import { useCreateAttribute, useUpdateAttribute } from '../queries';
 import {
@@ -37,8 +36,6 @@ const DEFAULT_VALUES: AttributeFormValues = {
   key: '',
   label: '',
   type: 'string',
-  required: false,
-  group: '',
   sortOrder: '',
   help: '',
   optionsRaw: '',
@@ -94,7 +91,6 @@ export function AttributeFormDialog({ open, onOpenChange, attribute }: Attribute
 
   const type = useWatch({ control, name: 'type' });
   const typeField = useController({ control, name: 'type' });
-  const requiredField = useController({ control, name: 'required' });
 
   const onSubmit = handleSubmit((values) => {
     if (isEditing && attribute) {
@@ -158,13 +154,6 @@ export function AttributeFormDialog({ open, onOpenChange, attribute }: Attribute
           </div>
 
           <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label>必填</Label>
-              <Switch
-                checked={requiredField.field.value}
-                onCheckedChange={(checked) => requiredField.field.onChange(checked)}
-              />
-            </div>
             {type === 'string' && (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="attr-max">最大长度</Label>
@@ -211,21 +200,15 @@ export function AttributeFormDialog({ open, onOpenChange, attribute }: Attribute
                 <FieldError message={errors.optionsRaw?.message} />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="attr-sort">排序值</Label>
-                <Input
-                  id="attr-sort"
-                  type="number"
-                  min={0}
-                  placeholder="升序排列"
-                  {...register('sortOrder')}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="attr-group">分组</Label>
-                <Input id="attr-group" placeholder="如：工作信息" {...register('group')} />
-              </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="attr-sort">排序值</Label>
+              <Input
+                id="attr-sort"
+                type="number"
+                min={0}
+                placeholder="升序排列"
+                {...register('sortOrder')}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="attr-help">帮助文本</Label>

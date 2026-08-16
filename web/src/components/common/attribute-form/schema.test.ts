@@ -81,47 +81,29 @@ describe('buildProfileSchema', () => {
     expect(schema.safeParse({ name: '张三', age: 'abc' }).success).toBe(false);
   });
 
-  it('required config makes a field mandatory', () => {
-    const schema = buildProfileSchema([
-      def({ key: 'dept', label: '部门', type: 'string', config: { required: true } }),
-      def({ key: 'note', label: '备注', type: 'string', config: {} }),
-    ]);
-
-    expect(schema.safeParse({ dept: '研发' }).success).toBe(true);
-    expect(schema.safeParse({ dept: '' }).success).toBe(false);
-    expect(schema.safeParse({ note: 'x' }).success).toBe(false);
-  });
-
-  it('required number rejects blank input', () => {
-    const schema = buildProfileSchema([
-      def({ key: 'score', label: '分数', type: 'number', config: { required: true } }),
-    ]);
-
-    expect(schema.safeParse({ score: '80' }).success).toBe(true);
-    expect(schema.safeParse({ score: '' }).success).toBe(false);
-  });
-
   it('bool field keeps false as a valid value', () => {
     const schema = buildProfileSchema([
-      def({ key: 'active', label: '在职', type: 'bool', config: { required: true } }),
+      def({ key: 'active', label: '在职', type: 'bool', config: {} }),
     ]);
 
     expect(schema.safeParse({ active: false }).success).toBe(true);
     expect(schema.safeParse({ active: true }).success).toBe(true);
   });
 
-  it('select field enforces options and required semantics', () => {
+  it('select field enforces options', () => {
     const schema = buildProfileSchema([
       def({
         key: 'dept',
         label: '部门',
         type: 'select',
-        config: { required: true, options: ['研发', '市场'] },
+        config: { options: ['研发', '市场'] },
       }),
     ]);
 
     expect(schema.safeParse({ dept: '研发' }).success).toBe(true);
-    expect(schema.safeParse({ dept: '' }).success).toBe(false);
+    // empty input = unset field, allowed without required config
+    expect(schema.safeParse({ dept: '' }).success).toBe(true);
+    expect(schema.safeParse({ dept: '其他' }).success).toBe(false);
     expect(schema.safeParse({ dept: '其他' }).success).toBe(false);
   });
 

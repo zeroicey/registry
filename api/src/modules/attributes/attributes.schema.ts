@@ -14,9 +14,7 @@ export const attributeTypeSchema = z.enum(['string', 'number', 'bool', 'date', '
 
 /** Validation & form rules carried by attributes.config. */
 const baseConfigSchema = z.object({
-  required: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
-  group: z.string().max(64).optional(),
   /** Allowed values for `select` type — required when type=select. */
   options: z.array(z.string().min(1).max(200)).min(1).optional(),
   /** Inclusive bounds: `number` → numeric bounds; `string` → min/max length. */
