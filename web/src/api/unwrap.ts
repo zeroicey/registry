@@ -14,8 +14,15 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
  * Parse the backend's unified response envelope `{ success, message, code?, data?, error? }`
  * and return `data`. Throws `ApiError` on failure — non-2xx status, malformed
  * body, or `success: false`. Feature `api.ts` files never touch raw `Response`.
+ *
+ * HTTP 204 (no content, e.g. DELETE) has an empty body by design: it is
+ * treated as a successful result with `undefined` data.
  */
 export async function unwrap<T>(response: Response): Promise<T> {
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   let envelope: ApiEnvelope;
 
   try {

@@ -41,6 +41,11 @@ describe('unwrap', () => {
     const response = jsonResponse({ foo: 'bar' });
     await expect(unwrap(response)).rejects.toBeInstanceOf(ApiError);
   });
+
+  it('returns undefined for an empty 204 body (delete flows)', async () => {
+    const response = new Response(null, { status: 204 });
+    await expect(unwrap(response)).resolves.toBeUndefined();
+  });
 });
 
 describe('toDisplayError', () => {
