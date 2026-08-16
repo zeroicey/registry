@@ -1,0 +1,28 @@
+# ── Build-context exclusions for the root Dockerfile ──
+# Repo-root context, so both api/ and web/ need their node_modules skipped.
+api/node_modules
+web/node_modules
+node_modules
+
+# Build outputs / runtime
+api/dist
+web/dist
+coverage
+*.log
+
+# Secrets & local tooling
+.env
+.env.*
+!.env.example
+api/.env
+web/.env
+
+# VCS & agent memory
+.git
+.ai
+.pi
+
+# Misc
+.DS_Store
+README.md
+deploy

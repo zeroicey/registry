@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
+import { serveStatic } from 'hono/bun';
+import { env } from '@/env';
 import { requestLogger, security } from '@/middleware';
 import { attributesRouter } from '@/modules/attributes/attributes.router';
 import { commentsRouter } from '@/modules/comments/comments.router';
@@ -7,9 +10,14 @@ import { usersRouter } from '@/modules/users/users.router';
 import { onError } from '@/shared/error-handler';
 import { Msg } from '@/shared/messages';
 
+/** Built SPA assets land here in the production image (root Dockerfile). */
+const WEB_DIST = './web-dist';
+
 /**
  * Build the Hono app: global middleware (logging + security) first,
- * unified error contract, then module routers.
+ * unified error contract, then module routers. In production the built
+ * React SPA is served from the same origin — /assets/* as static files,
+ * any other GET falling back to index.html (react-router owns routing).
  */
 export function createApp(): Hono {
   const app = new Hono();
@@ -27,6 +35,13 @@ export function createApp(): Hono {
   app.route('/attributes', attributesRouter);
   app.route('/users', usersRouter);
   app.route('/', commentsRouter); // POST/GET /users/:userId/comments, PATCH/DELETE /comments/:id
+
+  // Production only: serve the built SPA from the same origin. Registered
+  // after the API routers so /users etc. always hit the API first.
+  if (env.NODE_ENV === 'production' && existsSync(WEB_DIST)) {
+    app.use('/assets/*', serveStatic({ root: WEB_DIST }));
+    app.get('*', serveStatic({ path: `${WEB_DIST}/index.html` }));
+  }
 
   return app;
 }
