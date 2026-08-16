@@ -25,3 +25,5 @@ logs/
 .DS_Store
 .idea/
 *.swp
+# 本地隐私工具（含数据路径，勿提交）
+import-xlsx.ts
