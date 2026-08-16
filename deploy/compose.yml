@@ -3,7 +3,7 @@
 #   - project dir + .env (secrets live in .env)
 #   - restart: unless-stopped
 #   - services bound to 127.0.0.1 + 10.126.126.2 (LAN)
-#   - image distributed via docker save/load (no registry pull)
+#   - image pulled from ghcr.io (GitHub Actions builds it on every push)
 #
 # Ports: host 3100 -> container 3000 (3000/3001/3002 are taken on hpcore).
 # The SPA is served by the API itself (Hono serveStatic + index.html
@@ -11,7 +11,7 @@
 
 services:
   api:
-    image: zeroicey/registry-api:latest
+    image: ghcr.io/zeroicey/registry-api:latest
     container_name: registry-api
     restart: unless-stopped
     env_file:

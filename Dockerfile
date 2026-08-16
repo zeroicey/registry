@@ -3,15 +3,15 @@
 # API image with web/dist baked in; Hono serves the SPA from the same origin
 # in production (see api/src/app.ts), so no nginx / static server is needed.
 #
+# Built on GitHub Actions (official registries reachable, no mirror/proxy
+# hacks needed) and pushed to ghcr.io; hpcore just pulls and runs it.
+#
 # The image runs the app only. Migrations are NEVER auto-run at container
 # start — run `bun run db:migrate` against the target database in the deploy
 # flow, then start the container with DATABASE_URL injected as an env var.
 
 # ── Stage 1: build the React SPA ───────────────────────────────────────────
 FROM oven/bun:1 AS web-build
-# Fast installs from the domestic mirror — hpcore reaches the official npm
-# registry poorly (proxy build-args in stage 2 remain as a fallback).
-ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
 RUN bun install
@@ -21,19 +21,9 @@ RUN bun run build
 # ── Stage 2: API image ─────────────────────────────────────────────────────
 FROM oven/bun:1 AS base
 
-# Optional proxy build-args (used by `bun install` behind restricted networks):
-#   docker build --build-arg HTTP_PROXY=http://proxy:port --build-arg HTTPS_PROXY=http://proxy:port .
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
-ARG NO_PROXY
-
 WORKDIR /app
 
-# Fast installs from the domestic mirror (same rationale as the web stage).
-ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
-
-# Timezone via env only — no apt layer: bun images ship ca-certificates
-# and hpcore cannot reach any apt mirror, so skip tzdata entirely.
+# Timezone via env only — no apt layer: bun images ship ca-certificates.
 ENV TZ=Asia/Shanghai
 
 # Non-root user
