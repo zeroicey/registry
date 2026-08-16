@@ -9,6 +9,9 @@
 
 # ── Stage 1: build the React SPA ───────────────────────────────────────────
 FROM oven/bun:1 AS web-build
+# Fast installs from the domestic mirror — hpcore reaches the official npm
+# registry poorly (proxy build-args in stage 2 remain as a fallback).
+ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
 RUN bun install
@@ -25,6 +28,9 @@ ARG HTTPS_PROXY
 ARG NO_PROXY
 
 WORKDIR /app
+
+# Fast installs from the domestic mirror (same rationale as the web stage).
+ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
 
 # Timezone + tzdata
 ENV TZ=Asia/Shanghai
