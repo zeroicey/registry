@@ -22,13 +22,12 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
-        // The web app talks to `${VITE_API_BASE_URL}/*`; in dev that is "/api",
-        // which Vite proxies to the Bun backend (routes live at the root, so
-        // the "/api" prefix is stripped here).
+        // The web app always talks to `${VITE_API_BASE_URL}/*` (= /api). The
+        // backend mounts its routers under /api too, so the prefix is
+        // forwarded as-is — dev and production behave identically.
         '/api': {
           target: proxyTarget,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

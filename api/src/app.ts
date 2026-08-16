@@ -30,11 +30,13 @@ export function createApp(): Hono {
   app.onError(onError);
   app.notFound((c) => c.json({ success: false, message: Msg.NOT_FOUND, code: 'NOT_FOUND' }, 404));
 
-  // Module routers.
-  app.route('/health', healthRouter);
-  app.route('/attributes', attributesRouter);
-  app.route('/users', usersRouter);
-  app.route('/', commentsRouter); // POST/GET /users/:userId/comments, PATCH/DELETE /comments/:id
+  // Module routers — mounted under /api so the SPA can own every other path
+  // (deep links like /users/4 must fall back to index.html, not clash with
+  // the JSON API).
+  app.route('/api/health', healthRouter);
+  app.route('/api/attributes', attributesRouter);
+  app.route('/api/users', usersRouter);
+  app.route('/api', commentsRouter); // POST/GET /api/users/:userId/comments, PATCH/DELETE /api/comments/:id
 
   // Production only: serve the built SPA from the same origin. Registered
   // after the API routers so /users etc. always hit the API first.

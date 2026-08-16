@@ -35,9 +35,11 @@ RUN apt-get update -qq \
 # Non-root user
 RUN groupadd -r app && useradd -r -g app -u 10001 app
 
-# Install production dependencies first (cached layer)
+# Install production dependencies first (cached layer). --ignore-scripts:
+# the api package's `prepare` runs husky for git hooks, which is meaningless
+# (and fails) inside the image with dev deps omitted.
 COPY api/package.json api/bun.lock ./
-RUN bun install --omit=dev
+RUN bun install --omit=dev --ignore-scripts
 
 # Bundle the rest of the source
 COPY api/ ./
@@ -54,6 +56,6 @@ USER app
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD ["bun", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+  CMD ["bun", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
 
 CMD ["bun", "run", "start"]

@@ -53,7 +53,7 @@ ssh hpcore 'docker load < /srv/compose/registry/registry-api-latest.tar.gz && cd
 ## 验证
 
 - 页面：浏览器打开 `http://10.126.126.2:3100`（LAN）或 `http://localhost:3100`（本机）
-- API：`curl http://10.126.126.2:3100/health` 期望 `{"success":true,...}`
+- API：`curl http://10.126.126.2:3100/api/health` 期望 `{"success":true,...}`
 - 前端同源：`VITE_API_BASE_URL` 留空（构建时即同源，勿在部署构建里设置绝对地址）
 
 ## 备注
