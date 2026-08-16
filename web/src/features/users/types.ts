@@ -18,7 +18,11 @@ export interface UserDto extends UserSummaryDto {
   profile: Record<string, unknown>;
 }
 
-/** One resolved attribute filter for the list endpoint (query param value is always a string). */
+/**
+ * One resolved attribute filter for the list endpoint (query param value is
+ * always a string). Special key `hasCode` filters on whether the national id
+ * (users.code) is present: value 'true' = has one, 'false' = none.
+ */
 export interface AttributeFilterValue {
   key: string;
   value: string;

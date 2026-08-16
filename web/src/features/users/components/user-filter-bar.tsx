@@ -28,6 +28,14 @@ const BOOL_OPTIONS = [
   { value: 'false', label: '否' },
 ];
 
+/** Special non-attribute filter: whether the national id (users.code) is present. */
+const HAS_CODE_OPTIONS = [
+  { value: 'true', label: '有身份证号' },
+  { value: 'false', label: '没身份证号' },
+];
+
+export const HAS_CODE_KEY = 'hasCode';
+
 interface UserFilterBarProps {
   /** Active attribute definitions (from useAttributeDefs). */
   defs: AttributeDef[];
@@ -52,17 +60,18 @@ export function UserFilterBar({ defs, filters, onChange }: UserFilterBarProps) {
 
       {filters.map((filter) => {
         const def = defs.find((d) => d.key === filter.key);
+        const label = filter.key === HAS_CODE_KEY ? '身份证号' : (def?.label ?? filter.key);
         return (
           <span
             key={filter.key}
             className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 py-1 pr-1 pl-3 text-sm"
           >
-            <span className="text-muted-foreground">{def?.label ?? filter.key}</span>
-            <span className="font-medium">{formatFilterValue(def, filter.value)}</span>
+            <span className="text-muted-foreground">{label}</span>
+            <span className="font-medium">{formatFilterValue(def, filter.key, filter.value)}</span>
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label={`移除 ${def?.label ?? filter.key} 筛选`}
+              aria-label={`移除 ${label} 筛选`}
               onClick={() => removeFilter(filter.key)}
             >
               <XIcon className="size-3" />
@@ -88,8 +97,9 @@ export function UserFilterBar({ defs, filters, onChange }: UserFilterBarProps) {
   );
 }
 
-/** Human-readable chip text: bool → 是/否, others verbatim. */
-function formatFilterValue(def: AttributeDef | undefined, value: string): string {
+/** Human-readable chip text: hasCode → 有/无, bool → 是/否, others verbatim. */
+function formatFilterValue(def: AttributeDef | undefined, key: string, value: string): string {
+  if (key === HAS_CODE_KEY) return value === 'true' ? '有' : '无';
   if (def?.type === 'bool') return value === 'true' ? '是' : '否';
   return value;
 }
@@ -105,11 +115,13 @@ interface FilterDialogProps {
 
 function FilterDialog({ open, onOpenChange, defs, existingKeys, onConfirm }: FilterDialogProps) {
   const available = defs.filter((d) => !existingKeys.includes(d.key));
+  const hasCodeAvailable = !existingKeys.includes(HAS_CODE_KEY);
 
   const [key, setKey] = useState<string>('');
   const [value, setValue] = useState<string>('');
 
   const selectedDef = defs.find((d) => d.key === key);
+  const isHasCode = key === HAS_CODE_KEY;
 
   const reset = () => {
     setKey('');
@@ -139,27 +151,53 @@ function FilterDialog({ open, onOpenChange, defs, existingKeys, onConfirm }: Fil
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label>属性</Label>
-            {available.length === 0 ? (
-              <p className="text-sm text-muted-foreground">没有可添加的属性。</p>
+            <Label>筛选条件</Label>
+            {available.length === 0 && !hasCodeAvailable ? (
+              <p className="text-sm text-muted-foreground">没有可添加的筛选条件。</p>
             ) : (
               <SelectRoot value={key} onValueChange={(v) => setKey(v as string)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择属性" />
+                  <SelectValue placeholder="选择条件" />
                 </SelectTrigger>
                 <SelectPopup>
-                  <SelectGroup>
-                    <SelectLabel>属性</SelectLabel>
-                    {available.map((def) => (
-                      <SelectItem key={def.key} value={def.key}>
-                        {def.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
+                  {available.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>属性</SelectLabel>
+                      {available.map((def) => (
+                        <SelectItem key={def.key} value={def.key}>
+                          {def.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {hasCodeAvailable && (
+                    <SelectGroup>
+                      <SelectLabel>特殊</SelectLabel>
+                      <SelectItem value={HAS_CODE_KEY}>身份证号</SelectItem>
+                    </SelectGroup>
+                  )}
                 </SelectPopup>
               </SelectRoot>
             )}
           </div>
+
+          {isHasCode && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="filter-value">值</Label>
+              <SelectRoot value={value} onValueChange={(v) => setValue(v as string)}>
+                <SelectTrigger id="filter-value">
+                  <SelectValue placeholder="选择" />
+                </SelectTrigger>
+                <SelectPopup>
+                  {HAS_CODE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </SelectRoot>
+            </div>
+          )}
 
           {selectedDef && (
             <div className="flex flex-col gap-1.5">
@@ -173,7 +211,7 @@ function FilterDialog({ open, onOpenChange, defs, existingKeys, onConfirm }: Fil
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button disabled={!selectedDef || value.trim() === ''} onClick={confirm}>
+          <Button disabled={(!selectedDef && !isHasCode) || value.trim() === ''} onClick={confirm}>
             确定
           </Button>
         </DialogFooter>

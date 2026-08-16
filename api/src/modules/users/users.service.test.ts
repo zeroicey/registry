@@ -54,6 +54,7 @@ function makeFakes() {
   const softDeleted: number[] = [];
 
   const listFilters: AttributeFilter[][] = [];
+  const listCodeNulls: (boolean | undefined)[] = [];
 
   const users: UserRepository = {
     async insert(data) {
@@ -94,6 +95,7 @@ function makeFakes() {
     },
     async list(options) {
       listFilters.push(options.attributeFilters ?? []);
+      listCodeNulls.push(options.codeNull);
       let items = [...usersStore.values()].filter((u) => u.deletedAt === null);
       if (options.search)
         items = items.filter(
@@ -177,6 +179,7 @@ function makeFakes() {
     softDeleted,
     attrByKey,
     listFilters,
+    listCodeNulls,
   };
 }
 
@@ -290,6 +293,14 @@ describe('UserService', () => {
     await expect(service.list({ page: 1, pageSize: 20, active: 'yes' })).rejects.toMatchObject({
       code: 'BAD_REQUEST',
     });
+  });
+
+  test('list maps hasCode to a codeNull option', async () => {
+    const { service, listCodeNulls } = makeFakes();
+    await service.list({ page: 1, pageSize: 20, hasCode: 'true' });
+    await service.list({ page: 1, pageSize: 20, hasCode: 'false' });
+    await service.list({ page: 1, pageSize: 20 });
+    expect(listCodeNulls).toEqual([true, false, undefined]);
   });
 
   test('remove soft-deletes the user', async () => {

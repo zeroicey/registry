@@ -29,7 +29,7 @@ export const updateProfileSchema = z.object({
 });
 
 /** Reserved query keys — everything else is treated as an attribute filter. */
-export const RESERVED_USER_QUERY_KEYS = ['page', 'pageSize', 'search'] as const;
+export const RESERVED_USER_QUERY_KEYS = ['page', 'pageSize', 'search', 'hasCode'] as const;
 
 export const listUsersQuerySchema = z
   .object({
@@ -37,6 +37,8 @@ export const listUsersQuerySchema = z
     pageSize: z.coerce.number().int().min(1).max(100).default(20),
     /** Fuzzy match on real_name / code. */
     search: z.string().min(1).max(100).optional(),
+    /** true=has a national id (users.code NOT NULL), false=does not (IS NULL). */
+    hasCode: z.enum(['true', 'false']).optional(),
   })
   // Attribute filters arrive as extra query params, e.g. ?gender=男 — validated in the service.
   .catchall(z.unknown());

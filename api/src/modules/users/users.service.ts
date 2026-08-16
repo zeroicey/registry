@@ -47,12 +47,14 @@ export class UserService {
       pageSize: number;
       attributeFilters: AttributeFilter[];
       search?: string;
+      codeNull?: boolean;
     } = {
       page: query.page,
       pageSize: query.pageSize,
       attributeFilters: await this.resolveAttributeFilters(query),
     };
     if (query.search !== undefined) options.search = query.search;
+    if (query.hasCode !== undefined) options.codeNull = query.hasCode === 'true';
     const { items, total } = await this.users.list(options);
     return { items: items.map(toSummaryDto), total, page: query.page, pageSize: query.pageSize };
   }

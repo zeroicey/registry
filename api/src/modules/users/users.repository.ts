@@ -1,4 +1,4 @@
-import { and, count, eq, ilike, isNull, or, type SQL, sql } from 'drizzle-orm';
+import { and, count, eq, ilike, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
 import { db } from '@/db/connection';
 import {
   attributeValueHistory,
@@ -15,6 +15,8 @@ export interface ListUsersOptions {
   page: number;
   pageSize: number;
   search?: string;
+  /** true=has a national id (code NOT NULL), false=does not (code IS NULL). */
+  codeNull?: boolean;
   attributeFilters?: AttributeFilter[];
 }
 
@@ -98,6 +100,11 @@ export class DrizzleUserRepository implements UserRepository {
       const pattern = `%${options.search}%`;
       const searchCondition = or(ilike(users.realName, pattern), ilike(users.code, pattern));
       if (searchCondition) conditions.push(searchCondition);
+    }
+    if (options.codeNull === true) {
+      conditions.push(isNotNull(users.code));
+    } else if (options.codeNull === false) {
+      conditions.push(isNull(users.code));
     }
     // Exact JSON match against attribute_values — uses the attribute_id index.
     for (const f of options.attributeFilters ?? []) {

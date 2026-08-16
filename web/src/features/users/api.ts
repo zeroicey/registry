@@ -16,6 +16,8 @@ function listQuery(params: ListUsersParams): QueryParams {
     pageSize: params.pageSize,
     search: params.search,
   };
+  // Filters carry both attribute keys and the special `hasCode` presence
+  // filter — each becomes one query param, so ?hasCode=true works here.
   for (const filter of params.filters ?? []) {
     query[filter.key] = filter.value;
   }
