@@ -76,6 +76,14 @@ function makeFakeRepo(): {
             : a.collectionId === null || a.collectionId === collectionId),
       );
     },
+    async findByKeysForUser(keys) {
+      return [...store.values()].filter(
+        (a) => a.deletedAt === null && keys.includes(a.key) && a.collectionId === null,
+      );
+    },
+    async findByKeysAnywhere(keys) {
+      return [...store.values()].filter((a) => a.deletedAt === null && keys.includes(a.key));
+    },
     async listActive({ page, pageSize, scope, collectionId }) {
       let items = [...store.values()].filter((a) => a.deletedAt === null);
       if (scope === 'global') {

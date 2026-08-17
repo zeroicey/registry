@@ -5,6 +5,7 @@ import {
   attributes,
   attributeValueHistory,
   attributeValues,
+  collectionMembers,
 } from '@/db/schema';
 import type { ProfileEntry } from './users.types';
 
@@ -22,6 +23,12 @@ export interface ProfileRepository {
    * `collectionId === null` → global attributes only; a number → global ∪ that collection.
    */
   getAssembled(userId: number, collectionId: number | null): Promise<AssembledProfileValue[]>;
+  /**
+   * Global (NULL) ∪ all collections the user belongs to — the fallback when
+   * no explicit collection scope is given (avoids an empty profile after a
+   * collection-scoped migration leaves the global scope empty).
+   */
+  getAssembledForUser(userId: number): Promise<AssembledProfileValue[]>;
   /**
    * Upsert values and record change history atomically.
    * Values that are deep-equal to the current row are skipped (no-op, no history entry).
@@ -53,6 +60,33 @@ export class DrizzleProfileRepository implements ProfileRepository {
       .innerJoin(attributes, eq(attributeValues.attributeId, attributes.id))
       .where(
         and(eq(attributeValues.userId, userId), isNull(attributes.deletedAt), scope ?? undefined),
+      )
+      .orderBy(attributeValues.updatedAt);
+  }
+
+  async getAssembledForUser(userId: number): Promise<AssembledProfileValue[]> {
+    const memberCollectionIds = db
+      .select({ collectionId: collectionMembers.collectionId })
+      .from(collectionMembers)
+      .where(eq(collectionMembers.userId, userId));
+    return db
+      .select({
+        attributeId: attributeValues.attributeId,
+        key: attributes.key,
+        value: attributeValues.value,
+        updatedAt: attributeValues.updatedAt,
+      })
+      .from(attributeValues)
+      .innerJoin(attributes, eq(attributeValues.attributeId, attributes.id))
+      .where(
+        and(
+          eq(attributeValues.userId, userId),
+          isNull(attributes.deletedAt),
+          or(
+            isNull(attributes.collectionId),
+            inArray(attributes.collectionId, memberCollectionIds),
+          ),
+        ),
       )
       .orderBy(attributeValues.updatedAt);
   }

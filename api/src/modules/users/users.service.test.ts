@@ -40,6 +40,7 @@ function makeFakes() {
   const usersStore = new Map<number, User>();
   const attrsStore = new Map<number, Attribute>();
   const attrByKey = new Map<string, Attribute>();
+  const memberCollections = new Map<number, number[]>();
   attrsStore.set(1, makeAttribute(1, { key: 'age', type: 'number', config: { min: 0, max: 150 } }));
   attrsStore.set(
     2,
@@ -117,6 +118,9 @@ function makeFakes() {
     async getAssembled() {
       return [];
     },
+    async getAssembledForUser() {
+      return [];
+    },
     async patchValues(userId, entries) {
       patchedUserIds.push(userId);
       patchedEntries.push(entries);
@@ -160,6 +164,18 @@ function makeFakes() {
             : a.collectionId === null || a.collectionId === collectionId),
       );
     },
+    async findByKeysForUser(keys, userId) {
+      const memberships = memberCollections.get(userId) ?? [];
+      return [...attrsStore.values()].filter(
+        (a) =>
+          a.deletedAt === null &&
+          keys.includes(a.key) &&
+          (a.collectionId === null || memberships.includes(a.collectionId)),
+      );
+    },
+    async findByKeysAnywhere(keys) {
+      return [...attrsStore.values()].filter((a) => a.deletedAt === null && keys.includes(a.key));
+    },
     async listActive({ page, pageSize, scope, collectionId }) {
       let items = [...attrsStore.values()].filter((a) => a.deletedAt === null);
       if (scope === 'global') {
@@ -198,6 +214,8 @@ function makeFakes() {
   return {
     service,
     usersStore,
+    attrsStore,
+    memberCollections,
     createdUsers,
     createdEntries,
     patchedEntries,
@@ -278,6 +296,16 @@ describe('UserService', () => {
     await service.patchProfile(1, { profiles: { age: 26 } });
     expect(patchedUserIds).toEqual([1]);
     expect(patchedEntries[0]).toEqual([{ attributeId: 1, value: 26 }]);
+  });
+
+  test('patchProfile without collectionId resolves collection-scoped keys via membership', async () => {
+    const { service, usersStore, attrsStore, memberCollections, patchedEntries } = makeFakes();
+    // 名录级属性（collectionId=1）+ 用户属于名录 1：无 collectionId 时应回退到用户名录解析。
+    attrsStore.set(4, makeAttribute(4, { key: 'emp_no', type: 'string', collectionId: 1 }));
+    memberCollections.set(1, [1]);
+    usersStore.set(1, makeUser(1));
+    await service.patchProfile(1, { profiles: { emp_no: 'A123' } });
+    expect(patchedEntries[0]).toEqual([{ attributeId: 4, value: 'A123' }]);
   });
 
   test('patchProfile returns USER_NOT_FOUND for missing users', async () => {

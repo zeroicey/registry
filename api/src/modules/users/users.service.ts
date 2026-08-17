@@ -42,12 +42,12 @@ export class UserService {
       entries,
       collectionId,
     );
-    return this.assemble(user, collectionId ?? null);
+    return this.assemble(user, collectionId);
   }
 
   async get(id: number, collectionId?: number): Promise<UserDto> {
     const user = await this.requireUser(id);
-    return this.assemble(user, collectionId ?? null);
+    return this.assemble(user, collectionId);
   }
 
   async list(
@@ -90,9 +90,9 @@ export class UserService {
   async patchProfile(id: number, input: UpdateProfileInput): Promise<UserDto> {
     const user = await this.requireUser(id);
     const collectionId = input.collectionId ?? null;
-    const entries = await this.validateProfileEntries(input.profiles, collectionId);
+    const entries = await this.validateProfileEntries(input.profiles, collectionId, user.id);
     await this.profiles.patchValues(user.id, entries);
-    return this.assemble(user, collectionId);
+    return this.assemble(user, input.collectionId);
   }
 
   // ── internals ──
@@ -103,9 +103,11 @@ export class UserService {
     return user;
   }
 
-  private async assemble(user: User, collectionId: number | null = null): Promise<UserDto> {
+  private async assemble(user: User, collectionId?: number): Promise<UserDto> {
     const [values, memberships] = await Promise.all([
-      this.profiles.getAssembled(user.id, collectionId),
+      collectionId !== undefined
+        ? this.profiles.getAssembled(user.id, collectionId)
+        : this.profiles.getAssembledForUser(user.id),
       this.users.findMemberships(user.id),
     ]);
     const profile: Record<string, unknown> = {};
@@ -113,15 +115,25 @@ export class UserService {
     return { ...toSummaryDto(user), profile, collections: memberships };
   }
 
-  /** Validates profile values against the active attribute definitions in scope. */
+  /**
+   * Validates profile values against the active attribute definitions in scope.
+   * Resolution: explicit collectionId → global ∪ collection; no collectionId but
+   * a userId → global ∪ the user's collections; otherwise global only.
+   */
   private async validateProfileEntries(
     profiles: Record<string, unknown>,
     collectionId: number | null,
+    userId?: number,
   ): Promise<ProfileEntry[]> {
     const keys = Object.keys(profiles);
     if (keys.length === 0) return [];
 
-    const found = await this.attributes.findByKeysInScope(keys, collectionId);
+    const found =
+      collectionId !== null
+        ? await this.attributes.findByKeysInScope(keys, collectionId)
+        : userId !== undefined
+          ? await this.attributes.findByKeysForUser(keys, userId)
+          : await this.attributes.findByKeysInScope(keys, null);
     const byKey = new Map(found.map((a) => [a.key, a]));
 
     const unknown = keys.filter((k) => !byKey.has(k));
@@ -164,7 +176,20 @@ export class UserService {
           message: `attribute filter "${key}" must be a single value`,
         });
       }
-      const found = await this.attributes.findByKeysInScope([key], collectionId);
+      const found =
+        collectionId !== null
+          ? await this.attributes.findByKeysInScope([key], collectionId)
+          : await this.attributes.findByKeysAnywhere([key]);
+      if (found.length === 0) {
+        throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
+          message: `unknown attribute filter: ${key}`,
+        });
+      }
+      if (found.length > 1) {
+        throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
+          message: `attribute filter "${key}" is ambiguous across collections; filter within a collection`,
+        });
+      }
       const attr = found[0];
       if (!attr) {
         throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {

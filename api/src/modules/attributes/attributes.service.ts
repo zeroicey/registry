@@ -1,6 +1,12 @@
 import { and, count, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from '@/db/connection';
-import { type Attribute, attributes, attributeValues, type NewAttribute } from '@/db/schema';
+import {
+  type Attribute,
+  attributes,
+  attributeValues,
+  collectionMembers,
+  type NewAttribute,
+} from '@/db/schema';
 import { AppError } from '@/shared/errors';
 import { Msg } from '@/shared/messages';
 import { toDbInsert, toDbUpdate, toDto } from './attributes.mappers';
@@ -32,6 +38,14 @@ export interface AttributeRepository {
    * `collectionId === null` → global only; otherwise global ∪ that collection.
    */
   findByKeysInScope(keys: string[], collectionId: number | null): Promise<Attribute[]>;
+  /**
+   * Global (NULL) ∪ all collections a user belongs to — the fallback when no
+   * explicit collection scope is given (avoids empty resolution after a
+   * collection-scoped migration leaves the global scope empty).
+   */
+  findByKeysForUser(keys: string[], userId: number): Promise<Attribute[]>;
+  /** All active attributes with these keys, across any scope (for cross-collection list filters). */
+  findByKeysAnywhere(keys: string[]): Promise<Attribute[]>;
   listActive(options: {
     page: number;
     pageSize: number;
@@ -99,6 +113,35 @@ export class DrizzleAttributeRepository implements AttributeRepository {
       .select()
       .from(attributes)
       .where(and(inArray(attributes.key, keys), scope, isNull(attributes.deletedAt)));
+  }
+
+  async findByKeysForUser(keys: string[], userId: number): Promise<Attribute[]> {
+    if (keys.length === 0) return [];
+    const memberCollectionIds = db
+      .select({ collectionId: collectionMembers.collectionId })
+      .from(collectionMembers)
+      .where(eq(collectionMembers.userId, userId));
+    return db
+      .select()
+      .from(attributes)
+      .where(
+        and(
+          inArray(attributes.key, keys),
+          isNull(attributes.deletedAt),
+          or(
+            isNull(attributes.collectionId),
+            inArray(attributes.collectionId, memberCollectionIds),
+          ),
+        ),
+      );
+  }
+
+  async findByKeysAnywhere(keys: string[]): Promise<Attribute[]> {
+    if (keys.length === 0) return [];
+    return db
+      .select()
+      .from(attributes)
+      .where(and(inArray(attributes.key, keys), isNull(attributes.deletedAt)));
   }
 
   async listActive(options: {
