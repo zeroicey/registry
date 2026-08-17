@@ -69,18 +69,24 @@ export class DrizzleFileRepository implements FileRepository {
     userId: number,
     options: ListFilesOptions,
   ): Promise<{ items: FileRow[]; total: number }> {
-    const where: SQL | undefined = eq(files.userId, userId);
+    const where: SQL | undefined = and(eq(files.userId, userId), isNull(users.deletedAt));
 
-    const [items, totalRows] = await Promise.all([
+    const [itemRows, totalRows] = await Promise.all([
       db
-        .select()
+        .select({ file: files })
         .from(files)
+        .innerJoin(users, eq(files.userId, users.id))
         .where(where)
         .orderBy(desc(files.createdAt))
         .limit(options.pageSize)
         .offset((options.page - 1) * options.pageSize),
-      db.select({ count: count() }).from(files).where(where),
+      db
+        .select({ count: count() })
+        .from(files)
+        .innerJoin(users, eq(files.userId, users.id))
+        .where(where),
     ]);
+    const items = itemRows.map((row) => row.file);
 
     return { items, total: totalRows[0]?.count ?? 0 };
   }
