@@ -11,6 +11,7 @@
 
 services:
   api:
+    network_mode: bridge
     image: ghcr.io/zeroicey/registry-api:latest
     container_name: registry-api
     restart: unless-stopped
