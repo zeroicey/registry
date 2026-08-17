@@ -5,6 +5,7 @@ import { toDisplayError } from '@/api/errors';
 import { PageLoading } from '@/app/layout/page-loading';
 import { DeleteFileDialog } from '../components/delete-file-dialog';
 import { FileList, type UploadingFileRow } from '../components/file-list';
+import { FilePreviewDialog } from '../components/file-preview-dialog';
 import { FileUploadBar } from '../components/file-upload-bar';
 import { useDeleteFile, useDownloadFile, useFiles, useUploadFile } from '../queries';
 import type { FileDto } from '../types';
@@ -23,6 +24,7 @@ export function UserFilesTab() {
   const [page, setPage] = useState(1);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFileRow[]>([]);
   const [deleting, setDeleting] = useState<FileDto | null>(null);
+  const [previewing, setPreviewing] = useState<FileDto | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | undefined>();
 
   const { data, isLoading, isError, error } = useFiles(userId, {
@@ -120,6 +122,7 @@ export function UserFilesTab() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        onPreview={setPreviewing}
         onDownload={downloadFile}
         onDelete={setDeleting}
         onDismissUpload={(uploadId) =>
@@ -134,6 +137,11 @@ export function UserFilesTab() {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={confirmDelete}
         isPending={deleteMutation.isPending}
+      />
+      <FilePreviewDialog
+        file={previewing}
+        open={previewing !== null}
+        onOpenChange={(open) => !open && setPreviewing(null)}
       />
     </div>
   );

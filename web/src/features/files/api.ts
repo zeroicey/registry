@@ -29,7 +29,7 @@ export async function deleteFile(id: number): Promise<void> {
   await unwrap<void>(response);
 }
 
-export async function downloadFileContent(id: number): Promise<Blob> {
+export async function fetchFileContent(id: number): Promise<Blob> {
   const response = await apiClient.get(apiUrl(`/files/${id}/content`), { timeout: false });
   if (!response.ok) {
     await unwrap<never>(response);

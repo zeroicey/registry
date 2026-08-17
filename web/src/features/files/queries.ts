@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { toDisplayError } from '@/api/errors';
 import {
   deleteFile as deleteFileRequest,
-  downloadFileContent,
+  fetchFileContent,
   fetchFiles,
   saveBlob,
   uploadFile as uploadFileRequest,
@@ -50,7 +50,7 @@ export function useDeleteFile(userId: number) {
 export function useDownloadFile() {
   return useMutation({
     mutationFn: async (file: FileDto) => {
-      const blob = await downloadFileContent(file.id);
+      const blob = await fetchFileContent(file.id);
       saveBlob(blob, file.originalName);
     },
     onError: (error) => toast.error(toDisplayError(error)),

@@ -26,6 +26,7 @@ interface FileListProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onPreview: (file: FileDto) => void;
   onDownload: (file: FileDto) => void;
   onDelete: (file: FileDto) => void;
   onDismissUpload: (id: string) => void;
@@ -53,6 +54,7 @@ export function FileList({
   page,
   totalPages,
   onPageChange,
+  onPreview,
   onDownload,
   onDelete,
   onDismissUpload,
@@ -111,7 +113,13 @@ export function FileList({
           {files.map((file) => (
             <TableRow key={file.id}>
               <TableCell className="min-w-0 whitespace-normal py-2">
-                <span className="break-all font-medium">{file.originalName}</span>
+                <button
+                  type="button"
+                  onClick={() => onPreview(file)}
+                  className="break-all text-left font-medium underline-offset-4 hover:text-primary hover:underline"
+                >
+                  {file.originalName}
+                </button>
               </TableCell>
               <TableCell className="text-muted-foreground">{formatFileSize(file.size)}</TableCell>
               <TableCell className="text-muted-foreground">
