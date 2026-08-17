@@ -21,6 +21,7 @@ function createUploadId(): string {
 export function SourceFilesPage() {
   const scope = useCollectionStore((s) => s.scope);
   const collectionId = scopeToCollectionId(scope);
+  const noCollectionSelected = collectionId === undefined;
   const [page, setPage] = useState(1);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFileRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<number | undefined>();
@@ -34,7 +35,7 @@ export function SourceFilesPage() {
   const downloadMutation = useDownloadSourceFile();
 
   const uploadFiles = async (files: File[]) => {
-    if (collectionId === undefined) {
+    if (noCollectionSelected) {
       toast.error('请先在顶部选择一个名录再上传');
       return;
     }
@@ -111,7 +112,7 @@ export function SourceFilesPage() {
       <SourceFileUploadBar
         onFilesSelected={uploadFiles}
         disabled={uploadMutation.isPending}
-        requiresCollection={collectionId === undefined}
+        requiresCollection={noCollectionSelected}
       />
       <SourceFileList
         files={items}
