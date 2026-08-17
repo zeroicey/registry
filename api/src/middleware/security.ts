@@ -39,10 +39,10 @@ export const security: MiddlewareHandler[] = (() => {
       windowMs: env.RATE_LIMIT_WINDOW_MS,
       limit: env.RATE_LIMIT_MAX,
       standardHeaders: 'draft-7',
-      keyGenerator: (c) =>
-        c.req.header('cf-connecting-ip') ??
-        c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-        'anonymous',
+      // This service is directly exposed on the EasyTier address. Forwarded
+      // headers are not authenticated here, so trusting them would let clients
+      // evade the in-memory limit by forging a new source IP per request.
+      keyGenerator: () => 'registry-direct',
       handler: (c) =>
         c.json({ success: false, message: Msg.RATE_LIMITED, code: 'RATE_LIMITED' }, 429),
       store: new MemoryStore(),

@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, type SQL, sql } from 'drizzle-orm';
 import { db } from '@/db/connection';
 import { type FileRow, files, users } from '@/db/schema';
 import { AppError } from '@/shared/errors';
@@ -37,13 +37,22 @@ export class DrizzleFileRepository implements FileRepository {
   }
 
   async insert(userId: number, data: NewFile): Promise<FileRow> {
-    const rows = await db
-      .insert(files)
-      .values({ userId, ...data })
-      .returning();
-    const row = rows[0];
-    if (!row) throw new AppError('INTERNAL', Msg.INTERNAL_ERROR);
-    return row;
+    return db.transaction(async (tx) => {
+      // Serialize with users.softDelete: if the target is already deleted this
+      // returns no row; otherwise the lock keeps it active through insertion.
+      const activeRows = await tx.execute(
+        sql`select id from ${users} where ${users.id} = ${userId} and ${users.deletedAt} is null for update`,
+      );
+      if (activeRows.length === 0) throw new AppError('USER_NOT_FOUND', Msg.USER_NOT_FOUND);
+
+      const rows = await tx
+        .insert(files)
+        .values({ userId, ...data })
+        .returning();
+      const row = rows[0];
+      if (!row) throw new AppError('INTERNAL', Msg.INTERNAL_ERROR);
+      return row;
+    });
   }
 
   async getById(id: number): Promise<FileRow | undefined> {

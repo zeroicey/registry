@@ -150,6 +150,38 @@ describe('FileService', () => {
     expect(await listStoragePaths(root)).toEqual([]);
   });
 
+  test('upload cleans disk when the user becomes unavailable during insert', async () => {
+    const users = new Set<number>([10]);
+    const raceRepo: FileRepository = {
+      async userExists(userId) {
+        return users.has(userId);
+      },
+      async insert() {
+        users.delete(10);
+        throw new AppError('USER_NOT_FOUND', 'User not found');
+      },
+      async getById() {
+        return undefined;
+      },
+      async list() {
+        return { items: [], total: 0 };
+      },
+      async remove() {
+        return false;
+      },
+      async allStoragePaths() {
+        return [];
+      },
+    };
+    const root = newRoot();
+    const s = new FileService(raceRepo, root, MAX_SIZE);
+
+    await expect(
+      s.upload(10, new File(['data'], 'during-delete.txt', { type: 'text/plain' })),
+    ).rejects.toMatchObject({ code: 'USER_NOT_FOUND' });
+    expect(await listStoragePaths(root)).toEqual([]);
+  });
+
   test('list returns paginated DTOs for a known user, newest first', async () => {
     const { repo, users } = makeFakeRepo();
     const s = new FileService(repo, newRoot(), MAX_SIZE);
