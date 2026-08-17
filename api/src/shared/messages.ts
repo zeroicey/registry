@@ -50,6 +50,18 @@ export const Msg = {
   SOURCE_FILE_NOT_FOUND: 'Source file not found',
   SOURCE_FILE_UPLOADED: 'Source file uploaded successfully',
   SOURCE_FILE_LISTED: 'Source files fetched successfully',
+  // ── collections ──
+  COLLECTION_NOT_FOUND: 'Collection not found',
+  COLLECTION_CREATED: 'Collection created successfully',
+  COLLECTION_FETCHED: 'Collection fetched successfully',
+  COLLECTION_LISTED: 'Collections fetched successfully',
+  COLLECTION_UPDATED: 'Collection updated successfully',
+  COLLECTION_DELETED: 'Collection deleted successfully',
+  COLLECTION_MEMBERS_ADDED: 'Collection members added successfully',
+  COLLECTION_MEMBER_REMOVED: 'Collection member removed successfully',
+  COLLECTION_REQUIRED: 'A collection id is required',
+  ATTRIBUTE_KEY_COLLISION:
+    'An active attribute with this key already exists in the global or target collection scope',
 } as const satisfies Record<string, string>;
 
 export type Message = (typeof Msg)[keyof typeof Msg];

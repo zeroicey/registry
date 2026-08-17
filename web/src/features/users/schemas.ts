@@ -39,6 +39,8 @@ export type CreateUserFormValues = z.infer<typeof createUserFormSchema>;
 export interface CreateUserInput {
   realName: string;
   code: string | null;
+  /** 创建时所在的名录（初始成员关系 + profile 解析作用域）。 */
+  collectionId?: number;
   profiles?: Record<string, unknown>;
 }
 
@@ -49,6 +51,8 @@ export interface UpdateUserInput {
 
 export interface UpdateProfileInput {
   profiles: Record<string, unknown>;
+  /** 解析 key 的作用域：不传 = 仅全局属性；传 = 全局 ∪ 该名录。 */
+  collectionId?: number;
 }
 
 /** Trim + map blank code to null, and empty realName is already rejected by the schema. */

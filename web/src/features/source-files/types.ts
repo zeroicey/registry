@@ -1,5 +1,7 @@
 export interface SourceFileDto {
   id: number;
+  /** 归属名录；API 上传必填，仅历史孤儿行可为 null。 */
+  collectionId: number | null;
   originalName: string;
   mimeType: string;
   size: number;
@@ -11,4 +13,5 @@ export interface SourceFileDto {
 export interface ListSourceFilesParams {
   page: number;
   pageSize: number;
+  collectionId?: number;
 }

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useAttributeDefs } from '@/features/attributes/queries';
+import { scopeToCollectionId, useCollectionStore } from '@/stores/collection-store';
 import { UserFilterBar } from '../components/user-filter-bar';
 import { UsersTable } from '../components/users-table';
 import { useDeleteUser, useUsers } from '../queries';
@@ -64,7 +65,9 @@ function EmptyResult({ onClear }: { onClear: () => void }) {
  */
 export function UsersPage() {
   const navigate = useNavigate();
-  const { data: defs } = useAttributeDefs();
+  const scope = useCollectionStore((s) => s.scope);
+  const collectionId = scopeToCollectionId(scope);
+  const { data: defs } = useAttributeDefs(scope);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -101,6 +104,7 @@ export function UsersPage() {
       page,
       pageSize: PAGE_SIZE,
       search: active ? search : undefined,
+      collectionId,
       filters: active ? filters : [],
     },
     { enabled: active },

@@ -24,7 +24,8 @@ export function useSourceFiles(params: ListSourceFilesParams) {
 export function useUploadSourceFile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => uploadSourceFileRequest(file),
+    mutationFn: ({ file, collectionId }: { file: File; collectionId: number }) =>
+      uploadSourceFileRequest(file, collectionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sourceFileKeys.all });
     },

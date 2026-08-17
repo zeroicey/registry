@@ -2,6 +2,10 @@ import type { User } from '@/db/schema';
 import type { AttributeRepository } from '@/modules/attributes/attributes.service';
 import { attributeRepository } from '@/modules/attributes/attributes.service';
 import { buildValueValidator } from '@/modules/attributes/validation';
+import {
+  type CollectionLookup,
+  collectionRepository,
+} from '@/modules/collections/collections.repository';
 import { AppError } from '@/shared/errors';
 import { Msg } from '@/shared/messages';
 import { type ProfileRepository, profileRepository } from './profile.repository';
@@ -23,20 +27,27 @@ export class UserService {
     private readonly users: UserRepository,
     private readonly profiles: ProfileRepository,
     private readonly attributes: AttributeRepository,
+    private readonly collections: CollectionLookup,
   ) {}
 
   async create(input: CreateUserInput): Promise<UserDto> {
-    const entries = await this.validateProfileEntries(input.profiles ?? {});
+    const collectionId = input.collectionId;
+    if (collectionId !== undefined) {
+      const exists = await this.collections.findById(collectionId);
+      if (!exists) throw new AppError('COLLECTION_NOT_FOUND', Msg.COLLECTION_NOT_FOUND);
+    }
+    const entries = await this.validateProfileEntries(input.profiles ?? {}, collectionId ?? null);
     const user = await this.users.createWithProfile(
       { realName: input.realName, code: input.code ?? null },
       entries,
+      collectionId,
     );
-    return this.assemble(user);
+    return this.assemble(user, collectionId ?? null);
   }
 
-  async get(id: number): Promise<UserDto> {
+  async get(id: number, collectionId?: number): Promise<UserDto> {
     const user = await this.requireUser(id);
-    return this.assemble(user);
+    return this.assemble(user, collectionId ?? null);
   }
 
   async list(
@@ -48,6 +59,7 @@ export class UserService {
       attributeFilters: AttributeFilter[];
       search?: string;
       codeNull?: boolean;
+      collectionId?: number;
     } = {
       page: query.page,
       pageSize: query.pageSize,
@@ -55,6 +67,7 @@ export class UserService {
     };
     if (query.search !== undefined) options.search = query.search;
     if (query.hasCode !== undefined) options.codeNull = query.hasCode === 'true';
+    if (query.collectionId !== undefined) options.collectionId = query.collectionId;
     const { items, total } = await this.users.list(options);
     return { items: items.map(toSummaryDto), total, page: query.page, pageSize: query.pageSize };
   }
@@ -76,9 +89,10 @@ export class UserService {
   /** Merge-patch a profile: validate against attribute configs, then upsert + history atomically. */
   async patchProfile(id: number, input: UpdateProfileInput): Promise<UserDto> {
     const user = await this.requireUser(id);
-    const entries = await this.validateProfileEntries(input.profiles);
+    const collectionId = input.collectionId ?? null;
+    const entries = await this.validateProfileEntries(input.profiles, collectionId);
     await this.profiles.patchValues(user.id, entries);
-    return this.assemble(user);
+    return this.assemble(user, collectionId);
   }
 
   // ── internals ──
@@ -89,19 +103,25 @@ export class UserService {
     return user;
   }
 
-  private async assemble(user: User): Promise<UserDto> {
-    const values = await this.profiles.getAssembled(user.id);
+  private async assemble(user: User, collectionId: number | null = null): Promise<UserDto> {
+    const [values, memberships] = await Promise.all([
+      this.profiles.getAssembled(user.id, collectionId),
+      this.users.findMemberships(user.id),
+    ]);
     const profile: Record<string, unknown> = {};
     for (const v of values) profile[v.key] = v.value;
-    return { ...toSummaryDto(user), profile };
+    return { ...toSummaryDto(user), profile, collections: memberships };
   }
 
-  /** Validates profile values against the active attribute definitions (keys + per-type rules). */
-  private async validateProfileEntries(profiles: Record<string, unknown>): Promise<ProfileEntry[]> {
+  /** Validates profile values against the active attribute definitions in scope. */
+  private async validateProfileEntries(
+    profiles: Record<string, unknown>,
+    collectionId: number | null,
+  ): Promise<ProfileEntry[]> {
     const keys = Object.keys(profiles);
     if (keys.length === 0) return [];
 
-    const found = await this.attributes.findByKeys(keys);
+    const found = await this.attributes.findByKeysInScope(keys, collectionId);
     const byKey = new Map(found.map((a) => [a.key, a]));
 
     const unknown = keys.filter((k) => !byKey.has(k));
@@ -133,9 +153,10 @@ export class UserService {
     return entries;
   }
 
-  /** Turns extra query params (?gender=男) into resolved attribute filters. */
+  /** Turns extra query params (?gender=男) into resolved attribute filters in scope. */
   private async resolveAttributeFilters(query: ListUsersQuery): Promise<AttributeFilter[]> {
     const filters: AttributeFilter[] = [];
+    const collectionId = query.collectionId ?? null;
     for (const [key, value] of Object.entries(query)) {
       if ((RESERVED_USER_QUERY_KEYS as readonly string[]).includes(key)) continue;
       if (typeof value !== 'string') {
@@ -143,7 +164,8 @@ export class UserService {
           message: `attribute filter "${key}" must be a single value`,
         });
       }
-      const attr = await this.attributes.findByKey(key);
+      const found = await this.attributes.findByKeysInScope([key], collectionId);
+      const attr = found[0];
       if (!attr) {
         throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
           message: `unknown attribute filter: ${key}`,
@@ -200,4 +222,9 @@ export function toSummaryDto(user: {
   };
 }
 
-export const userService = new UserService(userRepository, profileRepository, attributeRepository);
+export const userService = new UserService(
+  userRepository,
+  profileRepository,
+  attributeRepository,
+  collectionRepository,
+);

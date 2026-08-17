@@ -10,14 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { scopeToCreateCollectionId, useCollectionStore } from '@/stores/collection-store';
 import type { AttributeDef } from '@/types/attribute';
 import { AttributeFormDialog } from '../components/attribute-form-dialog';
 import { AttributesTable } from '../components/attributes-table';
 import { useAttributeDefs, useDeleteAttribute } from '../queries';
 
-/** 属性配置页：属性定义列表 + 新建/编辑弹窗 + 删除确认。 */
+/** 属性配置页：属性定义列表 + 新建/编辑弹窗 + 删除确认（按当前名录作用域过滤）。 */
 export function AttributesPage() {
-  const { data: attributes, isLoading, isError, refetch } = useAttributeDefs();
+  const scope = useCollectionStore((s) => s.scope);
+  const { data: attributes, isLoading, isError, refetch } = useAttributeDefs(scope);
   const deleteMutation = useDeleteAttribute();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -47,7 +49,7 @@ export function AttributesPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">自定义属性</h1>
           <p className="text-sm text-muted-foreground">
-            定义人员档案的自定义字段，类型与校验规则会同步到人员表单。
+            定义人员档案的自定义字段；顶部选择名录后，这里只展示该名录（+全局）的属性。
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -77,7 +79,12 @@ export function AttributesPage() {
         </div>
       )}
 
-      <AttributeFormDialog open={formOpen} onOpenChange={setFormOpen} attribute={editing} />
+      <AttributeFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        attribute={editing}
+        collectionId={scopeToCreateCollectionId(scope) ?? null}
+      />
 
       <Dialog
         open={deleting !== undefined}

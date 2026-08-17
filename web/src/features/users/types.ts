@@ -14,8 +14,19 @@ export interface UserSummaryDto {
 
 /** Full user returned by `GET /users/:id` / `POST` / `PATCH`. */
 export interface UserDto extends UserSummaryDto {
-  /** Attribute values keyed by attribute business key. */
+  /**
+   * Attribute values keyed by attribute business key, resolved against the
+   * requested collection scope (global ∪ that collection, or global only).
+   */
   profile: Record<string, unknown>;
+  /** All active collections this user belongs to (M:N membership). */
+  collections: CollectionRef[];
+}
+
+/** 该人员所属的某个名录（仅 id + 名称）。 */
+export interface CollectionRef {
+  id: number;
+  name: string;
 }
 
 /**
@@ -33,5 +44,7 @@ export interface ListUsersParams {
   page: number;
   pageSize: number;
   search?: string | undefined;
+  /** 只列某个名录的成员。 */
+  collectionId?: number | undefined;
   filters?: AttributeFilterValue[] | undefined;
 }

@@ -1,6 +1,7 @@
 import { useParams } from 'react-router';
 import { PageLoading } from '@/app/layout/page-loading';
 import { useAttributeDefs } from '@/features/attributes/queries';
+import { scopeToCollectionId, useCollectionStore } from '@/stores/collection-store';
 import { AttributeValues } from '../components/attribute-values';
 import { useUser } from '../queries';
 import { UserBasicInfo } from './user-basic-info';
@@ -12,8 +13,10 @@ import { UserBasicInfo } from './user-basic-info';
 export function UserOverview() {
   const { id } = useParams();
   const userId = Number(id);
-  const { data: user, isLoading, isError } = useUser(userId);
-  const { data: defs } = useAttributeDefs();
+  const scope = useCollectionStore((s) => s.scope);
+  const collectionId = scopeToCollectionId(scope);
+  const { data: user, isLoading, isError } = useUser(userId, collectionId);
+  const { data: defs } = useAttributeDefs(scope);
 
   if (isLoading) return <PageLoading />;
   if (isError || !user) {

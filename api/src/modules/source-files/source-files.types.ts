@@ -1,6 +1,6 @@
+import type { z } from 'zod';
 import type { SourceFileStatus } from '@/db/schema';
 import type { listSourceFilesQuerySchema, sourceFileParamsSchema } from './source-files.schema';
-import type { z } from 'zod';
 
 export type SourceFileParams = z.infer<typeof sourceFileParamsSchema>;
 export type ListSourceFilesQuery = z.infer<typeof listSourceFilesQuerySchema>;
@@ -9,11 +9,14 @@ export type ListSourceFilesQuery = z.infer<typeof listSourceFilesQuerySchema>;
 export interface ListSourceFilesOptions {
   page: number;
   pageSize: number;
+  collectionId?: number;
 }
 
 /** API-facing source-file shape (camelCase, ISO timestamps; storagePath never exposed). */
 export interface SourceFileDto {
   id: number;
+  /** 归属名录；API 上传必填，仅历史孤儿行可为 null。 */
+  collectionId: number | null;
   originalName: string;
   mimeType: string;
   size: number;

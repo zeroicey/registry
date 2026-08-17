@@ -32,10 +32,10 @@ export function useUsers(params: ListUsersParams, options?: { enabled?: boolean 
   });
 }
 
-export function useUser(id: number) {
+export function useUser(id: number, collectionId?: number) {
   return useQuery({
-    queryKey: userKeys.detail(id),
-    queryFn: () => fetchUser(id),
+    queryKey: [...userKeys.detail(id), collectionId],
+    queryFn: () => fetchUser(id, collectionId),
     enabled: Number.isInteger(id) && id > 0,
   });
 }

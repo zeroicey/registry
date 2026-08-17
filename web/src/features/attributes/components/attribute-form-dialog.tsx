@@ -57,6 +57,8 @@ interface AttributeFormDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Existing attribute when editing; undefined = create mode. */
   attribute?: AttributeDef | undefined;
+  /** 创建时归属的名录（null/undefined = 全局）。仅创建模式生效。 */
+  collectionId?: number | null;
 }
 
 function FieldError({ message }: { message?: string | undefined }) {
@@ -65,7 +67,12 @@ function FieldError({ message }: { message?: string | undefined }) {
 }
 
 /** Create / edit dialog for an attribute definition. */
-export function AttributeFormDialog({ open, onOpenChange, attribute }: AttributeFormDialogProps) {
+export function AttributeFormDialog({
+  open,
+  onOpenChange,
+  attribute,
+  collectionId,
+}: AttributeFormDialogProps) {
   const isEditing = attribute !== undefined;
   const createMutation = useCreateAttribute();
   const updateMutation = useUpdateAttribute();
@@ -99,7 +106,9 @@ export function AttributeFormDialog({ open, onOpenChange, attribute }: Attribute
         { onSuccess: () => onOpenChange(false) },
       );
     } else {
-      createMutation.mutate(toCreateInput(values), { onSuccess: () => onOpenChange(false) });
+      createMutation.mutate(toCreateInput(values, collectionId), {
+        onSuccess: () => onOpenChange(false),
+      });
     }
   });
 

@@ -87,7 +87,41 @@ export const users = pgTable(
   ],
 );
 
-/** 字段模板（表单设计器）：动态定义要收集的字段 */
+/** 名录（集合）：一类人员的领域实例（某校教师 / 某店客户 / 某企业员工 / 某校学生）。 */
+export const collections = pgTable('collections', {
+  id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  /** Soft delete: NULL = active. */
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * user ↔ collection 多对多：一个人员可同时属于多个名录（去重后跨名录复用身份），
+ * 一个名录自然包含多个人。属性按名录隔离，故同一人的不同名录属性互不干扰。
+ */
+export const collectionMembers = pgTable(
+  'collection_members',
+  {
+    collectionId: bigint('collection_id', { mode: 'number' })
+      .notNull()
+      .references(() => collections.id, { onDelete: 'cascade' }),
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 加入该名录的时间。 */
+    joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ name: 'collection_members_pk', columns: [table.collectionId, table.userId] }),
+    // 「某个人员属于哪些名录」反向查询。
+    index('collection_members_user_id_idx').on(table.userId),
+  ],
+);
+
+/** 字段模板（表单设计器）：动态定义要收集的字段。 */
 export const attributes = pgTable(
   'attributes',
   {
@@ -98,16 +132,29 @@ export const attributes = pgTable(
     type: attributeTypeEnum('type').notNull(),
     /** Validation/form rules, e.g. { options, min, max, sortOrder, regex }. */
     config: jsonb('config').$type<AttributeConfig>().notNull().default({}),
+    /**
+     * 归属名录：NULL = 全局共享属性（所有名录可见，如手机号/性别）；非空 = 名录专属属性。
+     * key 在名录内唯一；全局属性 key 在全局内唯一。创建后不可迁移名录。
+     */
+    collectionId: bigint('collection_id', { mode: 'number' }).references(() => collections.id, {
+      onDelete: 'cascade',
+    }),
     /** Soft delete: NULL = active. Re-creating a key after delete is allowed. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    // Key is unique only among active attributes, so a soft-deleted key can be reused.
-    uniqueIndex('attributes_key_active_unique')
+    // 全局属性 key 唯一（collection_id IS NULL）：两个全局属性不能同 key。
+    uniqueIndex('attributes_global_key_active_unique')
       .on(table.key)
-      .where(sql`${table.deletedAt} IS NULL`),
+      .where(sql`${table.collectionId} IS NULL AND ${table.deletedAt} IS NULL`),
+    // 名录内 key 唯一（collection_id IS NOT NULL）：同 key 可在不同名录各自存在。
+    uniqueIndex('attributes_collection_key_active_unique')
+      .on(table.collectionId, table.key)
+      .where(sql`${table.collectionId} IS NOT NULL AND ${table.deletedAt} IS NULL`),
+    // 按名录列属性（列表/表单按 collection_id 过滤）。
+    index('attributes_collection_id_idx').on(table.collectionId),
   ],
 );
 
@@ -196,19 +243,27 @@ export const files = pgTable(
  * 资源（一次导入一批人），语义与删除/权限都不同，不混用（见 .ai/decisions.md）。
  * 物理文件落在 UPLOAD_ROOT/source-files/（与 objects/ 平级，互不干扰）。
  */
-export const sourceFiles = pgTable('source_files', {
-  id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
-  /** 上传时的原始文件名。 */
-  originalName: text('original_name').notNull(),
-  /** 相对物理路径（source-files/{YYYY}/{MM}/{uuid}{ext}），不对外公开。 */
-  storagePath: text('storage_path').notNull(),
-  mimeType: text('mime_type').notNull(),
-  /** 文件字节数。 */
-  size: bigint({ mode: 'number' }).notNull(),
-  /** uploaded = 已上传未导入；imported = 已由外部 AI 导入并完成溯源标记。 */
-  status: sourceFileStatusEnum('status').notNull().default('uploaded'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const sourceFiles = pgTable(
+  'source_files',
+  {
+    id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+    /** 该来源文件导入到哪个名录（API 层强制必填；历史孤儿行可为空）。 */
+    collectionId: bigint('collection_id', { mode: 'number' }).references(() => collections.id, {
+      onDelete: 'cascade',
+    }),
+    /** 上传时的原始文件名。 */
+    originalName: text('original_name').notNull(),
+    /** 相对物理路径（source-files/{YYYY}/{MM}/{uuid}{ext}），不对外公开。 */
+    storagePath: text('storage_path').notNull(),
+    mimeType: text('mime_type').notNull(),
+    /** 文件字节数。 */
+    size: bigint({ mode: 'number' }).notNull(),
+    /** uploaded = 已上传未导入；imported = 已由外部 AI 导入并完成溯源标记。 */
+    status: sourceFileStatusEnum('status').notNull().default('uploaded'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('source_files_collection_id_idx').on(table.collectionId)],
+);
 
 /**
  * user ↔ source_file 多对多关联：一个用户可来自多个文件（重复导入合并时
@@ -234,6 +289,10 @@ export const userSourceFiles = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Collection = typeof collections.$inferSelect;
+export type NewCollection = typeof collections.$inferInsert;
+export type CollectionMember = typeof collectionMembers.$inferSelect;
+export type NewCollectionMember = typeof collectionMembers.$inferInsert;
 export type Attribute = typeof attributes.$inferSelect;
 export type NewAttribute = typeof attributes.$inferInsert;
 export type AttributeValue = typeof attributeValues.$inferSelect;

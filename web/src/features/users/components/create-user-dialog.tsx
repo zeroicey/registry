@@ -30,10 +30,17 @@ interface CreateUserDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Active attribute definitions driving the dynamic profile fields. */
   defs: AttributeDef[];
+  /** 创建时归属的名录（可选；不传 = 全局用户）。 */
+  collectionId?: number;
 }
 
 /** Create-user dialog: fixed basic fields + dynamic attribute profile fields. */
-export function CreateUserDialog({ open, onOpenChange, defs }: CreateUserDialogProps) {
+export function CreateUserDialog({
+  open,
+  onOpenChange,
+  defs,
+  collectionId,
+}: CreateUserDialogProps) {
   const createMutation = useCreateUser();
 
   const {
@@ -80,6 +87,7 @@ export function CreateUserDialog({ open, onOpenChange, defs }: CreateUserDialogP
       {
         realName: values.realName,
         code: values.code === '' ? null : values.code,
+        ...(collectionId !== undefined ? { collectionId } : {}),
         profiles,
       },
       { onSuccess: () => onOpenChange(false) },

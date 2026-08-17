@@ -74,6 +74,8 @@ export interface CreateAttributeInput {
   label: string;
   type: AttributeType;
   config: AttributeConfig;
+  /** null/undefined = 全局共享属性；数字 = 名录专属属性。 */
+  collectionId?: number | null;
 }
 
 export interface UpdateAttributeInput {
@@ -83,12 +85,16 @@ export interface UpdateAttributeInput {
 }
 
 /** Assemble the create payload from flat form values (empty config fields dropped). */
-export function toCreateInput(values: AttributeFormValues): CreateAttributeInput {
+export function toCreateInput(
+  values: AttributeFormValues,
+  collectionId?: number | null,
+): CreateAttributeInput {
   return {
     key: values.key,
     label: values.label,
     type: values.type,
     config: toConfig(values),
+    ...(collectionId !== undefined ? { collectionId } : {}),
   };
 }
 

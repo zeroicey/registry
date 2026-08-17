@@ -8,14 +8,19 @@ export async function fetchSourceFiles(
   params: ListSourceFilesParams,
 ): Promise<PaginatedResult<SourceFileDto>> {
   const response = await apiClient.get(
-    apiUrl('/source-files', { page: params.page, pageSize: params.pageSize }),
+    apiUrl('/source-files', {
+      page: params.page,
+      pageSize: params.pageSize,
+      collectionId: params.collectionId,
+    }),
   );
   return unwrap<PaginatedResult<SourceFileDto>>(response);
 }
 
-export async function uploadSourceFile(file: File): Promise<SourceFileDto> {
+export async function uploadSourceFile(file: File, collectionId: number): Promise<SourceFileDto> {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('collectionId', String(collectionId));
   const response = await apiClient.post(apiUrl('/source-files'), {
     body: formData,
     timeout: false,

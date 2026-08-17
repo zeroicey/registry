@@ -1,4 +1,8 @@
 import { env } from '@/env';
+import {
+  type CollectionLookup,
+  collectionRepository,
+} from '@/modules/collections/collections.repository';
 import { normalizeMimeType } from '@/modules/files/files.service';
 import { AppError } from '@/shared/errors';
 import { logger } from '@/shared/logger';
@@ -30,9 +34,12 @@ export class SourceFileService {
     private readonly repo: SourceFileRepository,
     private readonly root: string,
     private readonly maxSize: number,
+    private readonly collections: CollectionLookup = collectionRepository,
   ) {}
 
-  async upload(file: File): Promise<SourceFileDto> {
+  async upload(file: File, collectionId: number): Promise<SourceFileDto> {
+    const collection = await this.collections.findById(collectionId);
+    if (!collection) throw new AppError('COLLECTION_NOT_FOUND', Msg.COLLECTION_NOT_FOUND);
     if (file.size > this.maxSize) {
       throw new AppError(
         'PAYLOAD_TOO_LARGE',
@@ -50,6 +57,7 @@ export class SourceFileService {
     await saveSourceFile(this.root, storagePath, buf);
     try {
       const row = await this.repo.insert({
+        collectionId,
         originalName: file.name,
         storagePath,
         mimeType,
@@ -71,6 +79,7 @@ export class SourceFileService {
     const { items, total } = await this.repo.list({
       page: query.page,
       pageSize: query.pageSize,
+      ...(query.collectionId !== undefined ? { collectionId: query.collectionId } : {}),
     });
     return { items: items.map(toSourceFileDto), total, page: query.page, pageSize: query.pageSize };
   }

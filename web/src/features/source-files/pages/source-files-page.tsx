@@ -3,11 +3,12 @@ import { toast } from 'sonner';
 import { toDisplayError } from '@/api/errors';
 import { PageLoading } from '@/app/layout/page-loading';
 import { copyText } from '@/lib/clipboard';
+import { scopeToCollectionId, useCollectionStore } from '@/stores/collection-store';
+import { SourceFileList, type UploadingFileRow } from '../components/source-file-list';
+import { SourceFileUploadBar } from '../components/source-file-upload-bar';
 import { buildImportPrompt } from '../import-prompt';
 import { useDownloadSourceFile, useSourceFiles, useUploadSourceFile } from '../queries';
 import type { SourceFileDto } from '../types';
-import { SourceFileList, type UploadingFileRow } from '../components/source-file-list';
-import { SourceFileUploadBar } from '../components/source-file-upload-bar';
 
 const PAGE_SIZE = 20;
 let nextUploadId = 0;
@@ -18,15 +19,25 @@ function createUploadId(): string {
 }
 
 export function SourceFilesPage() {
+  const scope = useCollectionStore((s) => s.scope);
+  const collectionId = scopeToCollectionId(scope);
   const [page, setPage] = useState(1);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFileRow[]>([]);
   const [downloadingId, setDownloadingId] = useState<number | undefined>();
 
-  const { data, isLoading, isError, error } = useSourceFiles({ page, pageSize: PAGE_SIZE });
+  const { data, isLoading, isError, error } = useSourceFiles({
+    page,
+    pageSize: PAGE_SIZE,
+    ...(collectionId !== undefined ? { collectionId } : {}),
+  });
   const uploadMutation = useUploadSourceFile();
   const downloadMutation = useDownloadSourceFile();
 
   const uploadFiles = async (files: File[]) => {
+    if (collectionId === undefined) {
+      toast.error('请先在顶部选择一个名录再上传');
+      return;
+    }
     const rows = files.map((file) => ({
       id: createUploadId(),
       name: file.name,
@@ -43,7 +54,7 @@ export function SourceFilesPage() {
       const row = rows[i];
       if (!file || !row) continue;
       try {
-        await uploadMutation.mutateAsync(file);
+        await uploadMutation.mutateAsync({ file, collectionId });
         succeeded += 1;
         setUploadingFiles((current) => current.filter((item) => item.id !== row.id));
       } catch (err) {
@@ -97,7 +108,11 @@ export function SourceFilesPage() {
           上传数据文件（Excel / CSV），交给外部 AI 导入数据库并完成溯源标记。
         </p>
       </div>
-      <SourceFileUploadBar onFilesSelected={uploadFiles} disabled={uploadMutation.isPending} />
+      <SourceFileUploadBar
+        onFilesSelected={uploadFiles}
+        disabled={uploadMutation.isPending}
+        requiresCollection={collectionId === undefined}
+      />
       <SourceFileList
         files={items}
         uploadingFiles={uploadingFiles}

@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { scopeToCollectionId, useCollectionStore } from '@/stores/collection-store';
 import { UserEditDialog } from '../components/user-edit-dialog';
 import { useDeleteUser, useUser } from '../queries';
 
@@ -30,7 +31,9 @@ export function UserDetailPage() {
   const { id } = useParams();
   const userId = Number(id);
   const navigate = useNavigate();
-  const { data: user, isLoading, isError } = useUser(userId);
+  const scope = useCollectionStore((s) => s.scope);
+  const collectionId = scopeToCollectionId(scope);
+  const { data: user, isLoading, isError } = useUser(userId, collectionId);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

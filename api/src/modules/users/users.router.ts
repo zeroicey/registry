@@ -10,6 +10,7 @@ import {
 } from './users.handler';
 import {
   createUserSchema,
+  getUserQuerySchema,
   listUsersQuerySchema,
   updateProfileSchema,
   updateUserSchema,
@@ -22,7 +23,12 @@ export const usersRouter = new Hono();
 usersRouter
   .get('/', validator.query(listUsersQuerySchema), listUsersHandler)
   .post('/', validator.json(createUserSchema), createUserHandler)
-  .get('/:id', validator.params(userParamsSchema), getUserHandler)
+  .get(
+    '/:id',
+    validator.params(userParamsSchema),
+    validator.query(getUserQuerySchema),
+    getUserHandler,
+  )
   .patch(
     '/:id',
     validator.params(userParamsSchema),

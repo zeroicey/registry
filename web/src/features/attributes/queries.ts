@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { toDisplayError } from '@/api/errors';
+import type { CollectionScope } from '@/stores/collection-store';
+import { scopeToAttributesQuery } from '@/stores/collection-store';
 import type { AttributeDef } from '@/types/attribute';
 import {
   createAttribute as createAttributeRequest,
@@ -15,14 +17,14 @@ export const attributeKeys = {
 };
 
 /**
- * All active attribute definitions — globally shared by the attributes page,
- * the users feature (create dialog / profile tab) and the list filter bar.
- * Attribute changes invalidate this key, so every consumer refreshes.
+ * Active attribute definitions within a scope (default: all). The scope drives
+ * the query key, so switching collections refetches the matching attribute set.
  */
-export function useAttributeDefs() {
+export function useAttributeDefs(scope: CollectionScope = { kind: 'all' }) {
+  const query = scopeToAttributesQuery(scope);
   return useQuery({
-    queryKey: attributeKeys.all,
-    queryFn: () => fetchAttributes(1, 100),
+    queryKey: [...attributeKeys.all, query],
+    queryFn: () => fetchAttributes(1, 100, query),
     staleTime: 60_000,
   });
 }

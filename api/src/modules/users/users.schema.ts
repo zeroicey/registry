@@ -12,6 +12,8 @@ export const profileSchema = z.record(z.string().min(1).max(64), z.unknown());
 export const createUserSchema = z.object({
   realName: z.string().min(1).max(100),
   code: userCodeSchema.nullable().optional(),
+  /** 创建时所在的名录（初始成员关系 + profile 解析作用域）。可选：不传 = 全局用户。 */
+  collectionId: z.number().int().positive().optional(),
   /** Initial profile values keyed by attribute business key (validated against attributes.config). */
   profiles: profileSchema.optional(),
 });
@@ -26,10 +28,23 @@ export const updateUserSchema = z
 export const updateProfileSchema = z.object({
   /** Merge-patch: keys are attribute business keys; only present keys are touched. */
   profiles: profileSchema,
+  /** 解析 key 的作用域：不传 = 仅全局属性；传 = 全局 ∪ 该名录。 */
+  collectionId: z.number().int().positive().optional(),
+});
+
+/** Query for `GET /users/:id` — optional collection scope for profile assembly. */
+export const getUserQuerySchema = z.object({
+  collectionId: z.coerce.number().int().positive().optional(),
 });
 
 /** Reserved query keys — everything else is treated as an attribute filter. */
-export const RESERVED_USER_QUERY_KEYS = ['page', 'pageSize', 'search', 'hasCode'] as const;
+export const RESERVED_USER_QUERY_KEYS = [
+  'page',
+  'pageSize',
+  'search',
+  'hasCode',
+  'collectionId',
+] as const;
 
 export const listUsersQuerySchema = z
   .object({
@@ -39,6 +54,8 @@ export const listUsersQuerySchema = z
     search: z.string().min(1).max(100).optional(),
     /** true=has a national id (users.code NOT NULL), false=does not (IS NULL). */
     hasCode: z.enum(['true', 'false']).optional(),
+    /** 只列某个名录的成员。 */
+    collectionId: z.coerce.number().int().positive().optional(),
   })
   // Attribute filters arrive as extra query params, e.g. ?gender=男 — validated in the service.
   .catchall(z.unknown());

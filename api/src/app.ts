@@ -4,6 +4,7 @@ import { serveStatic } from 'hono/bun';
 import { env } from '@/env';
 import { requestLogger, security } from '@/middleware';
 import { attributesRouter } from '@/modules/attributes/attributes.router';
+import { collectionsRouter } from '@/modules/collections/collections.router';
 import { commentsRouter } from '@/modules/comments/comments.router';
 import { filesRouter } from '@/modules/files/files.router';
 import { healthRouter } from '@/modules/health/health.router';
@@ -36,6 +37,7 @@ export function createApp(): Hono {
   // (deep links like /users/4 must fall back to index.html, not clash with
   // the JSON API).
   app.route('/api/health', healthRouter);
+  app.route('/api/collections', collectionsRouter);
   app.route('/api/attributes', attributesRouter);
   app.route('/api/users', usersRouter);
   app.route('/api', commentsRouter); // POST/GET /api/users/:userId/comments, PATCH/DELETE /api/comments/:id

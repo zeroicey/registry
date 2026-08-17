@@ -19,7 +19,12 @@ export async function uploadSourceFileHandler(
   if (!(file instanceof File)) {
     throw new AppError('BAD_REQUEST', Msg.FILE_REQUIRED);
   }
-  const entry = await sourceFileService.upload(file);
+  const rawCollectionId = form.get('collectionId');
+  const collectionId = typeof rawCollectionId === 'string' ? Number(rawCollectionId) : NaN;
+  if (!Number.isInteger(collectionId) || collectionId <= 0) {
+    throw new AppError('BAD_REQUEST', Msg.COLLECTION_REQUIRED);
+  }
+  const entry = await sourceFileService.upload(file, collectionId);
   return Res.created(Msg.SOURCE_FILE_UPLOADED, entry).build(c);
 }
 

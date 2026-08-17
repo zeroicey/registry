@@ -11,6 +11,7 @@ function makeAttr(overrides: Partial<Attribute> = {}): Attribute {
     label: '性别',
     type: 'select',
     config: { options: ['男', '女'] },
+    collectionId: null,
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -39,6 +40,7 @@ function makeFakeRepo(): {
         label: data.label,
         type: data.type,
         ...(data.config !== undefined ? { config: data.config } : {}),
+        ...(data.collectionId !== undefined ? { collectionId: data.collectionId } : {}),
       });
       store.set(attr.id, attr);
       return attr;
@@ -47,17 +49,40 @@ function makeFakeRepo(): {
       const attr = store.get(id);
       return attr && attr.deletedAt === null ? attr : undefined;
     },
-    async findByKey(key) {
+    async findByKeyInScope(key, collectionId) {
       for (const attr of store.values()) {
-        if (attr.key === key && attr.deletedAt === null) return attr;
+        if (attr.key !== key || attr.deletedAt !== null) continue;
+        if (
+          collectionId === null ? attr.collectionId === null : attr.collectionId === collectionId
+        ) {
+          return attr;
+        }
       }
       return undefined;
     },
-    async findByKeys(keys) {
-      return [...store.values()].filter((a) => a.deletedAt === null && keys.includes(a.key));
+    async findCollectionKeyAnywhere(key) {
+      for (const attr of store.values()) {
+        if (attr.key === key && attr.deletedAt === null && attr.collectionId !== null) return attr;
+      }
+      return undefined;
     },
-    async listActive({ page, pageSize }) {
-      const items = [...store.values()].filter((a) => a.deletedAt === null);
+    async findByKeysInScope(keys, collectionId) {
+      return [...store.values()].filter(
+        (a) =>
+          a.deletedAt === null &&
+          keys.includes(a.key) &&
+          (collectionId === null
+            ? a.collectionId === null
+            : a.collectionId === null || a.collectionId === collectionId),
+      );
+    },
+    async listActive({ page, pageSize, scope, collectionId }) {
+      let items = [...store.values()].filter((a) => a.deletedAt === null);
+      if (scope === 'global') {
+        items = items.filter((a) => a.collectionId === null);
+      } else if (scope === 'collection' && collectionId !== undefined) {
+        items = items.filter((a) => a.collectionId === null || a.collectionId === collectionId);
+      }
       return { items: items.slice((page - 1) * pageSize, page * pageSize), total: items.length };
     },
     async update(id, data) {
@@ -153,7 +178,7 @@ describe('AttributeService', () => {
     await service.remove(1);
     expect(store.get(1)?.deletedAt).not.toBeNull();
 
-    const list = await service.list({ page: 1, pageSize: 20 });
+    const list = await service.list({ page: 1, pageSize: 20, scope: 'all' });
     expect(list.total).toBe(1);
     expect(list.items[0]?.key).toBe('age');
 

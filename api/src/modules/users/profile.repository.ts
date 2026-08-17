@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '@/db/connection';
 import {
   type AttributeValue,
@@ -17,8 +17,11 @@ export interface AssembledProfileValue {
 }
 
 export interface ProfileRepository {
-  /** Values for a user joined with active attribute keys — drives profile assembly. */
-  getAssembled(userId: number): Promise<AssembledProfileValue[]>;
+  /**
+   * Values for a user joined with active attribute keys — drives profile assembly.
+   * `collectionId === null` → global attributes only; a number → global ∪ that collection.
+   */
+  getAssembled(userId: number, collectionId: number | null): Promise<AssembledProfileValue[]>;
   /**
    * Upsert values and record change history atomically.
    * Values that are deep-equal to the current row are skipped (no-op, no history entry).
@@ -31,7 +34,14 @@ function valuesEqual(a: unknown, b: unknown): boolean {
 }
 
 export class DrizzleProfileRepository implements ProfileRepository {
-  async getAssembled(userId: number): Promise<AssembledProfileValue[]> {
+  async getAssembled(
+    userId: number,
+    collectionId: number | null,
+  ): Promise<AssembledProfileValue[]> {
+    const scope =
+      collectionId === null
+        ? isNull(attributes.collectionId)
+        : or(isNull(attributes.collectionId), eq(attributes.collectionId, collectionId));
     return db
       .select({
         attributeId: attributeValues.attributeId,
@@ -41,7 +51,9 @@ export class DrizzleProfileRepository implements ProfileRepository {
       })
       .from(attributeValues)
       .innerJoin(attributes, eq(attributeValues.attributeId, attributes.id))
-      .where(and(eq(attributeValues.userId, userId), isNull(attributes.deletedAt)))
+      .where(
+        and(eq(attributeValues.userId, userId), isNull(attributes.deletedAt), scope ?? undefined),
+      )
       .orderBy(attributeValues.updatedAt);
   }
 

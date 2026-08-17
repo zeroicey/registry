@@ -9,6 +9,7 @@ export function toDto(attr: Attribute): AttributeDto {
     label: attr.label,
     type: attr.type,
     config: attr.config,
+    collectionId: attr.collectionId,
     createdAt: attr.createdAt.toISOString(),
     updatedAt: attr.updatedAt.toISOString(),
   };
@@ -32,6 +33,7 @@ export function toDbInsert(input: CreateAttributeInput) {
     label: input.label,
     type: input.type,
     config: toDbConfig(input.config),
+    collectionId: input.collectionId ?? null,
   };
 }
 

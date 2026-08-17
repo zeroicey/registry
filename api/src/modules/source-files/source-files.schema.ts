@@ -10,4 +10,6 @@ export const sourceFileParamsSchema = z.object({
 export const listSourceFilesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  /** 只列某个名录的来源文件。 */
+  collectionId: z.coerce.number().int().positive().optional(),
 });

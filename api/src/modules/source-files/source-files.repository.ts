@@ -1,4 +1,4 @@
-import { count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { db } from '@/db/connection';
 import { type SourceFileRow, sourceFiles } from '@/db/schema';
 import { AppError } from '@/shared/errors';
@@ -7,6 +7,7 @@ import type { ListSourceFilesOptions } from './source-files.types';
 
 /** New source-file payload — derived from the uploaded multipart File. */
 export interface NewSourceFile {
+  collectionId: number;
   originalName: string;
   storagePath: string;
   mimeType: string;
@@ -35,14 +36,22 @@ export class DrizzleSourceFileRepository implements SourceFileRepository {
   }
 
   async list(options: ListSourceFilesOptions): Promise<{ items: SourceFileRow[]; total: number }> {
+    const conditions =
+      options.collectionId !== undefined
+        ? [eq(sourceFiles.collectionId, options.collectionId)]
+        : [];
     const [itemRows, totalRows] = await Promise.all([
       db
         .select()
         .from(sourceFiles)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(sourceFiles.createdAt))
         .limit(options.pageSize)
         .offset((options.page - 1) * options.pageSize),
-      db.select({ count: count() }).from(sourceFiles),
+      db
+        .select({ count: count() })
+        .from(sourceFiles)
+        .where(conditions.length > 0 ? and(...conditions) : undefined),
     ]);
     return { items: itemRows, total: totalRows[0]?.count ?? 0 };
   }

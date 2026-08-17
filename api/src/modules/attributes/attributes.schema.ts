@@ -73,6 +73,8 @@ export const createAttributeSchema = z
     label: z.string().min(1).max(100),
     type: attributeTypeSchema,
     config: attributeConfigSchema.default({}),
+    /** 归属名录：null/缺省 = 全局共享属性；数字 = 名录专属属性。创建后不可迁移。 */
+    collectionId: z.number().int().positive().nullable().optional(),
   })
   .superRefine(refineSelectHasOptions);
 
@@ -85,10 +87,25 @@ export const updateAttributeSchema = z
   .partial()
   .superRefine(refineSelectHasOptions);
 
-export const listAttributesQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-});
+export const attributeListScopeSchema = z.enum(['all', 'global', 'collection']);
+
+export const listAttributesQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    /** all=全部；global=仅全局；collection=全局∪指定名录。 */
+    scope: attributeListScopeSchema.default('all'),
+    collectionId: z.coerce.number().int().positive().optional(),
+  })
+  .superRefine((query, ctx) => {
+    if (query.scope === 'collection' && query.collectionId === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['collectionId'],
+        message: 'collectionId is required when scope=collection',
+      });
+    }
+  });
 
 export const attributeParamsSchema = z.object({
   id: z.coerce.number().int().positive(),

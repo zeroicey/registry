@@ -11,6 +11,7 @@ const DEFS: AttributeDef[] = [
     label: '部门',
     type: 'select',
     config: { options: ['研发', '市场'] },
+    collectionId: null,
     createdAt: '2026-08-15T00:00:00Z',
     updatedAt: '2026-08-15T00:00:00Z',
   },

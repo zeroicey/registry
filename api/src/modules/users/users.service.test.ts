@@ -28,6 +28,7 @@ function makeAttribute(id: number, overrides: Partial<Attribute> = {}): Attribut
     label: '年龄',
     type: 'number',
     config: { min: 0, max: 150 },
+    collectionId: null,
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -71,6 +72,9 @@ function makeFakes() {
       nextId += 1;
       usersStore.set(user.id, user);
       return user;
+    },
+    async findMemberships() {
+      return [];
     },
     async findById(id) {
       const u = usersStore.get(id);
@@ -136,15 +140,33 @@ function makeFakes() {
       const a = attrsStore.get(id);
       return a && a.deletedAt === null ? a : undefined;
     },
-    async findByKey(key) {
+    async findByKeyInScope(key, collectionId) {
       const a = attrByKey.get(key);
-      return a && a.deletedAt === null ? a : undefined;
+      if (!a || a.deletedAt !== null) return undefined;
+      if (collectionId === null) return a.collectionId === null ? a : undefined;
+      return a.collectionId === collectionId ? a : undefined;
     },
-    async findByKeys(keys) {
-      return [...attrsStore.values()].filter((a) => a.deletedAt === null && keys.includes(a.key));
+    async findCollectionKeyAnywhere(key) {
+      const a = attrByKey.get(key);
+      return a && a.deletedAt === null && a.collectionId !== null ? a : undefined;
     },
-    async listActive({ page, pageSize }) {
-      const items = [...attrsStore.values()].filter((a) => a.deletedAt === null);
+    async findByKeysInScope(keys, collectionId) {
+      return [...attrsStore.values()].filter(
+        (a) =>
+          a.deletedAt === null &&
+          keys.includes(a.key) &&
+          (collectionId === null
+            ? a.collectionId === null
+            : a.collectionId === null || a.collectionId === collectionId),
+      );
+    },
+    async listActive({ page, pageSize, scope, collectionId }) {
+      let items = [...attrsStore.values()].filter((a) => a.deletedAt === null);
+      if (scope === 'global') {
+        items = items.filter((a) => a.collectionId === null);
+      } else if (scope === 'collection' && collectionId !== undefined) {
+        items = items.filter((a) => a.collectionId === null || a.collectionId === collectionId);
+      }
       return { items: items.slice((page - 1) * pageSize, page * pageSize), total: items.length };
     },
     async update(id, data) {
@@ -168,7 +190,11 @@ function makeFakes() {
     },
   };
 
-  const service = new UserService(users, profiles, attributes);
+  const service = new UserService(users, profiles, attributes, {
+    async findById() {
+      return undefined;
+    },
+  });
   return {
     service,
     usersStore,

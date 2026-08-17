@@ -15,6 +15,7 @@ function listQuery(params: ListUsersParams): QueryParams {
     page: params.page,
     pageSize: params.pageSize,
     search: params.search,
+    collectionId: params.collectionId,
   };
   // Filters carry both attribute keys and the special `hasCode` presence
   // filter — each becomes one query param, so ?hasCode=true works here.
@@ -31,8 +32,8 @@ export async function fetchUsers(
   return unwrap<PaginatedResult<UserSummaryDto>>(response);
 }
 
-export async function fetchUser(id: number): Promise<UserDto> {
-  const response = await apiClient.get(apiUrl(`/users/${id}`));
+export async function fetchUser(id: number, collectionId?: number): Promise<UserDto> {
+  const response = await apiClient.get(apiUrl(`/users/${id}`, { collectionId }));
   return unwrap<UserDto>(response);
 }
 

@@ -11,6 +11,10 @@ import { SourceFileService } from './source-files.service';
 
 const baseTime = Date.now();
 const MAX_SIZE = 1024 * 1024; // 1 MiB for tests
+const COLLECTION_ID = 1;
+
+/** Fake collection existence check — keeps upload tests off the real DB. */
+const fakeCollections = { findById: async () => ({ id: COLLECTION_ID }) };
 
 // Each test gets its own temp storage root so physical files never leak
 // between cases; afterEach removes every root created during the test.
@@ -37,6 +41,7 @@ function makeFakeRepo() {
     async insert(data: NewSourceFile) {
       const row: SourceFileRow = {
         id: store.size + 1,
+        collectionId: data.collectionId,
         originalName: data.originalName,
         storagePath: data.storagePath,
         mimeType: data.mimeType,
@@ -62,16 +67,24 @@ function makeFakeRepo() {
   return { repo, store };
 }
 
+function newService(repo: SourceFileRepository, root: string): SourceFileService {
+  return new SourceFileService(repo, root, MAX_SIZE, fakeCollections);
+}
+
 describe('SourceFileService', () => {
   test('upload returns a DTO and persists the bytes under source-files/', async () => {
     const { repo } = makeFakeRepo();
     const root = newRoot();
-    const s = new SourceFileService(repo, root, MAX_SIZE);
+    const s = newService(repo, root);
 
     const payload = new TextEncoder().encode('a,b,c\n1,2,3\n');
-    const dto = await s.upload(new File([payload], '数据.csv', { type: 'text/csv' }));
+    const dto = await s.upload(
+      new File([payload], '数据.csv', { type: 'text/csv' }),
+      COLLECTION_ID,
+    );
 
     expect(dto.originalName).toBe('数据.csv');
+    expect(dto.collectionId).toBe(COLLECTION_ID);
     expect(dto.mimeType).toBe('text/csv');
     expect(dto.size).toBe(payload.byteLength);
     expect(dto.status).toBe('uploaded');
@@ -84,13 +97,22 @@ describe('SourceFileService', () => {
     expect(new Uint8Array(onDisk)).toEqual(payload);
   });
 
+  test('upload rejects a missing collection', async () => {
+    const { repo } = makeFakeRepo();
+    const s = new SourceFileService(repo, newRoot(), MAX_SIZE, {
+      findById: async () => undefined,
+    });
+    const file = new File(['data'], 'a.csv', { type: 'text/csv' });
+    await expect(s.upload(file, 999)).rejects.toMatchObject({ code: 'COLLECTION_NOT_FOUND' });
+  });
+
   test('upload rejects oversized files before writing anything', async () => {
     const { repo, store } = makeFakeRepo();
-    const s = new SourceFileService(repo, newRoot(), MAX_SIZE);
+    const s = newService(repo, newRoot());
     const big = new File([new Uint8Array(MAX_SIZE + 1)], 'big.xlsx', {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-    await expect(s.upload(big)).rejects.toMatchObject({ code: 'PAYLOAD_TOO_LARGE' });
+    await expect(s.upload(big, COLLECTION_ID)).rejects.toMatchObject({ code: 'PAYLOAD_TOO_LARGE' });
     expect(store.size).toBe(0);
   });
 
@@ -107,11 +129,11 @@ describe('SourceFileService', () => {
       },
     };
     const root = newRoot();
-    const s = new SourceFileService(failRepo, root, MAX_SIZE);
+    const s = newService(failRepo, root);
 
-    await expect(s.upload(new File(['data'], 'a.csv', { type: 'text/csv' }))).rejects.toThrow(
-      'db down',
-    );
+    await expect(
+      s.upload(new File(['data'], 'a.csv', { type: 'text/csv' }), COLLECTION_ID),
+    ).rejects.toThrow('db down');
     // The bytes saved before the failed insert must be rolled back (the empty
     // date sub-directories are left behind, same as the attachments module).
     const { readdir } = await import('node:fs/promises');
@@ -131,10 +153,10 @@ describe('SourceFileService', () => {
   test('getContent streams back the stored bytes with metadata', async () => {
     const { repo } = makeFakeRepo();
     const root = newRoot();
-    const s = new SourceFileService(repo, root, MAX_SIZE);
+    const s = newService(repo, root);
     const payload = new TextEncoder().encode('hello source file');
 
-    const dto = await s.upload(new File([payload], 'src.csv', { type: 'text/csv' }));
+    const dto = await s.upload(new File([payload], 'src.csv', { type: 'text/csv' }), COLLECTION_ID);
     const content = await s.getContent(dto.id);
 
     expect(content.mimeType).toBe('text/csv');
@@ -145,16 +167,16 @@ describe('SourceFileService', () => {
 
   test('getContent throws SOURCE_FILE_NOT_FOUND for a missing id', async () => {
     const { repo } = makeFakeRepo();
-    const s = new SourceFileService(repo, newRoot(), MAX_SIZE);
+    const s = newService(repo, newRoot());
     await expect(s.getContent(999)).rejects.toBeInstanceOf(AppError);
     await expect(s.getContent(999)).rejects.toMatchObject({ code: 'SOURCE_FILE_NOT_FOUND' });
   });
 
   test('list paginates by newest first', async () => {
     const { repo, store } = makeFakeRepo();
-    const s = new SourceFileService(repo, newRoot(), MAX_SIZE);
+    const s = newService(repo, newRoot());
     for (let i = 0; i < 3; i += 1) {
-      await s.upload(new File([`file-${i}`], `f${i}.csv`, { type: 'text/csv' }));
+      await s.upload(new File([`file-${i}`], `f${i}.csv`, { type: 'text/csv' }), COLLECTION_ID);
     }
     expect(store.size).toBe(3);
 

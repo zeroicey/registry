@@ -9,6 +9,7 @@ function def(overrides: Partial<AttributeDef>): AttributeDef {
     label: '字段',
     type: 'string',
     config: {},
+    collectionId: null,
     createdAt: '2026-08-15T00:00:00Z',
     updatedAt: '2026-08-15T00:00:00Z',
     ...overrides,

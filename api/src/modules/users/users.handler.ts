@@ -4,6 +4,7 @@ import { Res } from '@/shared/response';
 import { userService } from './users.service';
 import type {
   CreateUserInput,
+  GetUserQuery,
   ListUsersQuery,
   UpdateProfileInput,
   UpdateUserInput,
@@ -26,8 +27,11 @@ export async function createUserHandler(
   return Res.created(Msg.USER_CREATED, data).build(c);
 }
 
-export async function getUserHandler(c: HandlerCtx<{ param: UserParams }>): Promise<Response> {
-  const data = await userService.get(c.req.valid('param').id);
+export async function getUserHandler(
+  c: HandlerCtx<{ param: UserParams; query: GetUserQuery }>,
+): Promise<Response> {
+  const { id } = c.req.valid('param');
+  const data = await userService.get(id, c.req.valid('query').collectionId);
   return Res.ok(Msg.USER_FETCHED, data).build(c);
 }
 

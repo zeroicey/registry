@@ -23,6 +23,7 @@ export const ERROR_CODES = {
   COMMENT_NOT_FOUND: 404,
   FILE_NOT_FOUND: 404,
   SOURCE_FILE_NOT_FOUND: 404,
+  COLLECTION_NOT_FOUND: 404,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

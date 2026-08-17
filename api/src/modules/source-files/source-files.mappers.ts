@@ -5,6 +5,7 @@ import type { SourceFileDto } from './source-files.types';
 export function toSourceFileDto(row: SourceFileRow): SourceFileDto {
   return {
     id: row.id,
+    collectionId: row.collectionId,
     originalName: row.originalName,
     mimeType: row.mimeType,
     size: row.size,

@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { ThemeToggle } from '@/components/common/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { env } from '@/config/env';
+import { CollectionSelect } from '@/features/collections';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -11,6 +12,7 @@ const NAV_LINKS = [
   { to: '/users', label: '人员管理' },
   { to: '/attributes', label: '属性配置' },
   { to: '/source-files', label: '数据源' },
+  { to: '/collections', label: '名录' },
 ];
 
 export function AppNavbar() {
@@ -41,6 +43,7 @@ export function AppNavbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          <CollectionSelect />
           <ThemeToggle />
           {!isDesktop && (
             <Dialog.Root
@@ -78,6 +81,9 @@ export function AppNavbar() {
                       </Link>
                     ))}
                   </nav>
+                  <div className="mt-1">
+                    <CollectionSelect />
+                  </div>
                 </Dialog.Popup>
               </Dialog.Portal>
             </Dialog.Root>

@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAttributeDefs } from '@/features/attributes/queries';
+import { scopeToCollectionId, useCollectionStore } from '@/stores/collection-store';
 import { updateProfile as updateProfileRequest, updateUser as updateUserRequest } from '../api';
 import { userKeys } from '../queries';
 import { toUpdateUserInput, userBaseSchema } from '../schemas';
@@ -69,7 +70,9 @@ interface UserEditDialogProps {
  */
 export function UserEditDialog({ open, onOpenChange, user }: UserEditDialogProps) {
   const queryClient = useQueryClient();
-  const { data: defs } = useAttributeDefs();
+  const scope = useCollectionStore((s) => s.scope);
+  const collectionId = scopeToCollectionId(scope);
+  const { data: defs } = useAttributeDefs(scope);
   const [isSaving, setIsSaving] = useState(false);
 
   const profileSchema = useMemo(() => buildProfileSchema(defs ?? []), [defs]);
@@ -124,7 +127,10 @@ export function UserEditDialog({ open, onOpenChange, user }: UserEditDialogProps
             )
           : Promise.resolve(undefined),
         Object.keys(patch).length > 0
-          ? updateProfileRequest(user.id, { profiles: patch })
+          ? updateProfileRequest(user.id, {
+              profiles: patch,
+              ...(collectionId !== undefined ? { collectionId } : {}),
+            })
           : Promise.resolve(undefined),
       ]);
       toast.success('资料已保存');

@@ -34,6 +34,8 @@ export interface AttributeDef {
   label: string;
   type: AttributeType;
   config: AttributeConfig;
+  /** null = 全局共享属性；数字 = 名录专属属性。 */
+  collectionId: number | null;
   createdAt: string;
   updatedAt: string;
 }

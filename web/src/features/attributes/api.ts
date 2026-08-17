@@ -4,12 +4,28 @@ import type { PaginatedResult } from '@/types';
 import type { AttributeDef } from '@/types/attribute';
 import type { CreateAttributeInput, UpdateAttributeInput } from './schemas';
 
+export interface AttributesQuery {
+  scope?: 'all' | 'global' | 'collection';
+  collectionId?: number;
+}
+
 /**
  * Attributes API — the only place that talks to the attributes endpoints.
  * Never exposes raw Response objects; all errors surface as ApiError.
  */
-export async function fetchAttributes(page = 1, pageSize = 100): Promise<AttributeDef[]> {
-  const response = await apiClient.get(apiUrl('/attributes', { page, pageSize }));
+export async function fetchAttributes(
+  page = 1,
+  pageSize = 100,
+  query: AttributesQuery = {},
+): Promise<AttributeDef[]> {
+  const response = await apiClient.get(
+    apiUrl('/attributes', {
+      page,
+      pageSize,
+      scope: query.scope,
+      collectionId: query.collectionId,
+    }),
+  );
   const result = await unwrap<PaginatedResult<AttributeDef>>(response);
   return result.items;
 }
