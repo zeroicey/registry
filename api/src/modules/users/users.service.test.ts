@@ -4,7 +4,7 @@ import type { AttributeRepository } from '@/modules/attributes/attributes.servic
 import type { ProfileRepository } from './profile.repository';
 import type { UserRepository } from './users.repository';
 import { UserService } from './users.service';
-import type { ProfileEntry, AttributeFilter } from './users.types';
+import type { AttributeFilter, ProfileEntry } from './users.types';
 
 function makeUser(id: number, overrides: Partial<User> = {}): User {
   const now = new Date();
@@ -97,10 +97,9 @@ function makeFakes() {
       listFilters.push(options.attributeFilters ?? []);
       listCodeNulls.push(options.codeNull);
       let items = [...usersStore.values()].filter((u) => u.deletedAt === null);
-      if (options.search)
-        items = items.filter(
-          (u) => u.realName.includes(options.search!) || (u.code ?? '').includes(options.search!),
-        );
+      const { search } = options;
+      if (search)
+        items = items.filter((u) => u.realName.includes(search) || (u.code ?? '').includes(search));
       const total = items.length;
       return {
         items: items.slice((options.page - 1) * options.pageSize, options.page * options.pageSize),

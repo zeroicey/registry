@@ -39,9 +39,9 @@ const envSchema = z.object({
   // a Docker volume here (see deploy/compose.yml) so all files live in one
   // host folder — easy to back up / migrate by copying that directory.
   UPLOAD_ROOT: z.string().default('./storage/files'),
-  // Per-file size cap for uploads (bytes). The global bodyLimit is widened to
-  // UPLOAD_MAX_SIZE + 1MB so multipart requests pass through; the real per-file
-  // check happens in files.service (returns 413 when exceeded).
+  // Per-file size cap for uploads (bytes). The upload route allows an additional
+  // 1MB for multipart envelope overhead; the real per-file check happens in
+  // files.service (returns 413 when exceeded).
   UPLOAD_MAX_SIZE: z.coerce
     .number()
     .int()

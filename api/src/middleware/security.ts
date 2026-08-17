@@ -19,6 +19,17 @@ export const security: MiddlewareHandler[] = (() => {
   const corsOrigins = env.CORS_ORIGINS;
   const isOpenCors = corsOrigins.includes('*');
 
+  const uploadBodyLimit = bodyLimit({
+    maxSize: env.UPLOAD_MAX_SIZE + 1024 * 1024,
+    onError: (c) =>
+      c.json({ success: false, message: Msg.PAYLOAD_TOO_LARGE, code: 'PAYLOAD_TOO_LARGE' }, 413),
+  });
+  const defaultBodyLimit = bodyLimit({
+    maxSize: env.BODY_LIMIT_BYTES,
+    onError: (c) =>
+      c.json({ success: false, message: Msg.PAYLOAD_TOO_LARGE, code: 'PAYLOAD_TOO_LARGE' }, 413),
+  });
+
   return [
     cors({
       origin: isOpenCors ? '*' : corsOrigins,
@@ -47,14 +58,15 @@ export const security: MiddlewareHandler[] = (() => {
         c.json({ success: false, message: Msg.RATE_LIMITED, code: 'RATE_LIMITED' }, 429),
       store: new MemoryStore(),
     }),
-    // Request-body cap must cover file uploads: widen to UPLOAD_MAX_SIZE + 1MB
-    // of multipart envelope overhead. The true per-file limit is enforced inside
-    // files.service (413 when a single file exceeds UPLOAD_MAX_SIZE).
-    bodyLimit({
-      maxSize: Math.max(env.BODY_LIMIT_BYTES, env.UPLOAD_MAX_SIZE + 1024 * 1024),
-      onError: (c) =>
-        c.json({ success: false, message: Msg.PAYLOAD_TOO_LARGE, code: 'PAYLOAD_TOO_LARGE' }, 413),
-    }),
+    // Only multipart file uploads need the larger envelope allowance. Keep the
+    // tighter default cap for JSON APIs to avoid accepting unnecessarily large bodies.
+    async (c, next) => {
+      const isFileUpload =
+        c.req.method === 'POST' &&
+        c.req.path.startsWith('/api/users/') &&
+        c.req.path.endsWith('/files');
+      return (isFileUpload ? uploadBodyLimit : defaultBodyLimit)(c, next);
+    },
     timeout(env.REQUEST_TIMEOUT_MS, new HTTPException(408, { message: Msg.REQUEST_TIMEOUT })),
   ];
 })();
