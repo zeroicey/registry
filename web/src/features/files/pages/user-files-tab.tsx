@@ -10,6 +10,12 @@ import { useDeleteFile, useDownloadFile, useFiles, useUploadFile } from '../quer
 import type { FileDto } from '../types';
 
 const PAGE_SIZE = 20;
+let nextUploadId = 0;
+
+function createUploadId(): string {
+  nextUploadId += 1;
+  return `upload-${Date.now()}-${nextUploadId}`;
+}
 
 export function UserFilesTab() {
   const { id } = useParams();
@@ -29,7 +35,7 @@ export function UserFilesTab() {
 
   const uploadFiles = async (files: File[]) => {
     const rows = files.map((file) => ({
-      id: crypto.randomUUID(),
+      id: createUploadId(),
       name: file.name,
       size: file.size,
       status: 'uploading' as const,
