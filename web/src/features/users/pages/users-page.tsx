@@ -110,8 +110,7 @@ export function UsersPage() {
         <div className="rounded-lg border bg-card">
           <UsersTable
             users={data?.items ?? []}
-            onView={openDetail}
-            onEdit={openDetail}
+            onDetail={openDetail}
             onDelete={setDeleting}
           />
         </div>

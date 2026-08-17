@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { EyeIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import { ExternalLinkIcon, Trash2Icon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -17,12 +17,11 @@ function formatDateTime(iso: string): string {
 
 interface UsersTableProps {
   users: UserSummaryDto[];
-  onView: (user: UserSummaryDto) => void;
-  onEdit: (user: UserSummaryDto) => void;
+  onDetail: (user: UserSummaryDto) => void;
   onDelete: (user: UserSummaryDto) => void;
 }
 
-export function UsersTable({ users, onView, onEdit, onDelete }: UsersTableProps) {
+export function UsersTable({ users, onDetail, onDelete }: UsersTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -45,19 +44,12 @@ export function UsersTable({ users, onView, onEdit, onDelete }: UsersTableProps)
               <div className="flex justify-end gap-1">
                 <Button
                   variant="ghost"
-                  size="icon-sm"
-                  aria-label={`查看 ${user.realName}`}
-                  onClick={() => onView(user)}
+                  size="sm"
+                  aria-label={`查看详情 ${user.realName}`}
+                  onClick={() => onDetail(user)}
                 >
-                  <EyeIcon className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`编辑 ${user.realName}`}
-                  onClick={() => onEdit(user)}
-                >
-                  <PencilIcon className="size-3.5" />
+                  <ExternalLinkIcon className="size-3.5" />
+                  详情
                 </Button>
                 <Button
                   variant="ghost"
