@@ -28,7 +28,7 @@ export function CommentsTab() {
   if (isLoading) return <PageLoading />;
   if (isError) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center">
+      <div className="flex flex-col items-center gap-3 p-8 text-center">
         <p className="text-sm text-muted-foreground">{toDisplayError(error)}</p>
       </div>
     );

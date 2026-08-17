@@ -43,7 +43,7 @@ export function CommentList({
 
   if (comments.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-10 text-center">
+      <div className="flex flex-col items-center gap-2 py-10 text-center">
         <p className="text-sm text-muted-foreground">还没有留言，来写第一条吧。</p>
       </div>
     );
@@ -67,14 +67,11 @@ export function CommentList({
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col">
         {comments.map((comment) => {
           const isEditing = editingId === comment.id;
           return (
-            <li
-              key={comment.id}
-              className="group rounded-lg border bg-card p-3 transition-colors hover:border-foreground/20"
-            >
+            <li key={comment.id} className="group border-b py-3 last:border-b-0">
               {isEditing ? (
                 <div className="flex flex-col gap-2">
                   <Textarea

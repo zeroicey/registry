@@ -29,14 +29,21 @@ describe('router', () => {
     expect(await screen.findByRole('heading', { name: '人员' })).toBeInTheDocument();
   });
 
-  it('renders the user detail page with basic/profile tabs', async () => {
-    renderAt('/users/1/basic');
+  it('renders the user detail page with 资料 (profile) and 留言 (comments) tabs', async () => {
+    renderAt('/users/1');
     expect(await screen.findByRole('navigation', { name: '人员详情页签' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '基本信息' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '编辑' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '删除' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '资料' })).toHaveAttribute('href', '/users/1');
+    expect(screen.getByRole('link', { name: '留言' })).toHaveAttribute('href', '/users/1/comments');
+  });
+
+  it('renders comments under the user detail tab', async () => {
+    renderAt('/users/1/comments');
+    expect(await screen.findByRole('link', { name: '留言' })).toHaveAttribute(
       'href',
-      '/users/1/basic',
+      '/users/1/comments',
     );
-    expect(screen.getByRole('link', { name: '属性' })).toHaveAttribute('href', '/users/1/profile');
   });
 
   it('renders the not-found page for unknown paths', async () => {

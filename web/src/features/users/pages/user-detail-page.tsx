@@ -11,18 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { formatDateTime } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import { UserEditDialog } from '../components/user-edit-dialog';
 import { useDeleteUser, useUser } from '../queries';
 
 const TAB_LINKS = [
-  { to: 'basic', label: '基本信息' },
-  { to: 'profile', label: '属性' },
-  { to: 'comments', label: '留言' },
+  { to: '', label: '资料', end: true },
+  { to: 'comments', label: '留言', end: false },
 ];
 
-/** 详情页壳：头部信息条 + Tab 栏（嵌套子路由）+ Outlet。 */
+/**
+ * 详情页壳：单行 header（名字 + Tab + 图标操作按钮）+ Outlet。
+ * 编辑弹窗（基本信息和属性一体编辑）在头部，任何 Tab 下都可进入；
+ * 留言 Tab 独立子路由（后续将加附件等能力）。
+ */
 export function UserDetailPage() {
   const { id } = useParams();
   const userId = Number(id);
@@ -54,51 +56,45 @@ export function UserDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
+    <div className="flex max-w-4xl flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b">
+        <div className="flex min-w-0 items-center gap-3">
           <h1 className="text-xl font-semibold tracking-tight">{user.realName}</h1>
-          <span className="text-sm text-muted-foreground">身份证号 {user.code ?? '—'}</span>
-          <span className="text-xs text-muted-foreground">
-            更新于 {formatDateTime(user.updatedAt)}
-          </span>
+          <nav aria-label="人员详情页签" className="flex gap-0.5 self-stretch">
+            {TAB_LINKS.map((tab) => (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.end}
+                className={({ isActive }) =>
+                  cn(
+                    '-mb-px flex items-center border-b-2 px-2.5 text-sm transition-colors',
+                    isActive
+                      ? 'border-primary font-medium text-foreground'
+                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                  )
+                }
+              >
+                {tab.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <PencilIcon className="size-3.5" />
-            编辑
+        <div className="flex items-center gap-0.5">
+          <Button variant="ghost" size="icon" aria-label="编辑" onClick={() => setEditOpen(true)}>
+            <PencilIcon className="size-4" />
           </Button>
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
+            aria-label="删除"
             className="text-destructive hover:text-destructive"
             onClick={() => setDeleteOpen(true)}
           >
-            <Trash2Icon className="size-3.5" />
-            删除
+            <Trash2Icon className="size-4" />
           </Button>
         </div>
       </div>
-
-      <nav aria-label="人员详情页签" className="flex gap-1 border-b">
-        {TAB_LINKS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.to === 'basic'}
-            className={({ isActive }) =>
-              cn(
-                'border-b-2 px-3 py-2 text-sm transition-colors',
-                isActive
-                  ? 'border-primary font-medium text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground',
-              )
-            }
-          >
-            {tab.label}
-          </NavLink>
-        ))}
-      </nav>
 
       <Outlet />
 

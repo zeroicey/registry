@@ -18,12 +18,17 @@ export const userKeys = {
   detail: (id: number) => [...userKeys.all, id] as const,
 };
 
-/** Paginated user list — `search`/filters/page changes produce a new query key. */
-export function useUsers(params: ListUsersParams) {
+/**
+ * Paginated user list — `search`/filters/page changes produce a new query key.
+ * Pass `enabled: false` to keep the list idle (no request) until the user
+ * explicitly submits a query.
+ */
+export function useUsers(params: ListUsersParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: userKeys.list(params),
     queryFn: () => fetchUsers(params),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   });
 }
 

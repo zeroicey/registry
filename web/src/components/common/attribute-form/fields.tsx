@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import type { AttributeDef } from '@/types/attribute';
 
 interface AttributeFieldsProps<TFieldValues extends FieldValues> {
@@ -30,6 +31,8 @@ interface AttributeFieldsProps<TFieldValues extends FieldValues> {
    * Leave unset when the form value IS the flat profile object.
    */
   namePrefix?: string;
+  /** Extra classes for the field list container — pass a grid to arrange fields in columns. */
+  className?: string;
 }
 
 function asString(value: unknown): string {
@@ -53,11 +56,12 @@ export function AttributeFields<TFieldValues extends FieldValues>({
   control,
   errors,
   namePrefix,
+  className,
 }: AttributeFieldsProps<TFieldValues>) {
   const sorted = [...defs].sort((a, b) => (a.config.sortOrder ?? 0) - (b.config.sortOrder ?? 0));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', className)}>
       {sorted.map((item) => (
         <Controller<TFieldValues>
           key={item.key}

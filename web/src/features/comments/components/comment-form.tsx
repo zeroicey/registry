@@ -39,6 +39,7 @@ export function CommentForm({ userId, onSubmit, isPending }: CommentFormProps) {
         placeholder="写留言…（最多 2000 字）"
         rows={3}
         aria-invalid={Boolean(errors.content)}
+        className="resize-none rounded-none border-0 border-b bg-transparent px-0 py-2 focus-visible:ring-0"
         {...register('content')}
       />
       {errors.content && <p className="text-xs text-destructive">{errors.content.message}</p>}

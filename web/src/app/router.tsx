@@ -17,11 +17,8 @@ const NewUserPage = lazy(() =>
 const UserDetailPage = lazy(() =>
   import('@/features/users').then((m) => ({ default: m.UserDetailPage })),
 );
-const UserBasicTab = lazy(() =>
-  import('@/features/users').then((m) => ({ default: m.UserBasicTab })),
-);
-const UserProfileTab = lazy(() =>
-  import('@/features/users').then((m) => ({ default: m.UserProfileTab })),
+const UserOverview = lazy(() =>
+  import('@/features/users').then((m) => ({ default: m.UserOverview })),
 );
 const CommentsTab = lazy(() =>
   import('@/features/comments').then((m) => ({ default: m.CommentsTab })),
@@ -41,9 +38,7 @@ export const routes: RouteObject[] = [
         path: 'users/:id',
         element: <UserDetailPage />,
         children: [
-          { index: true, element: <Navigate to="basic" replace /> },
-          { path: 'basic', element: <UserBasicTab /> },
-          { path: 'profile', element: <UserProfileTab /> },
+          { index: true, element: <UserOverview /> },
           { path: 'comments', element: <CommentsTab /> },
         ],
       },
