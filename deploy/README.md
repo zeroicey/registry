@@ -6,7 +6,10 @@
 ## 一次性初始化（需要 sudo，/srv/compose 归 root）
 
 ```bash
-sudo mkdir -p /srv/compose/registry && sudo chown oicey:oicey /srv/compose/registry
+sudo mkdir -p /srv/compose/registry/storage/files
+sudo chown -R oicey:oicey /srv/compose/registry
+# API 镜像以 UID/GID 10001 的 app 用户运行，附件卷必须允许它写入。
+sudo chown -R 10001:10001 /srv/compose/registry/storage/files
 ```
 
 ## 首次部署
@@ -26,6 +29,8 @@ ssh hpcore 'docker load < /srv/compose/registry/registry-api-latest.tar.gz'
 scp deploy/compose.yml hpcore:/srv/compose/registry/
 # 在 hpcore 上编辑：vim /srv/compose/registry/.env（模板见 deploy/.env.example，
 # DATABASE_URL 指向 hpcore postgres 上的 registry 库）
+# 目录 /srv/compose/registry/storage/files 会作为 UPLOAD_ROOT 的宿主机数据卷，
+# 里面的文件就是用户附件；备份/迁移时直接拷这个目录即可。
 
 # 5. 启动
 ssh hpcore 'cd /srv/compose/registry && docker compose up -d'
@@ -59,4 +64,5 @@ ssh hpcore 'docker load < /srv/compose/registry/registry-api-latest.tar.gz && cd
 ## 备注
 
 - 端口 3100：hpcore 上 3000（serenique）/ 3001（vocechat）/ 3002（clipforge）已被占用
+- `storage/files` 是本地卷挂载点：用户附件和后续原始导入文件都建议走这个目录
 - 迁移只走 drizzle-kit；触发器/函数等用 `--custom` 补 SQL（见 `.ai/decisions.md`）

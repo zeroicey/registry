@@ -13,6 +13,9 @@ node_modules/
 dist/
 build/
 
+# Local file storage (dev uploads; prod uses a Docker volume on the host)
+api/storage/
+
 # Environment
 .env
 .env.*

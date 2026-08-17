@@ -1,6 +1,10 @@
 import { createApp } from '@/app';
 import { env } from '@/env';
 import { logger } from '@/shared/logger';
+import { initStorageRoot } from '@/shared/storage';
+
+// Make sure the file-storage root (UPLOAD_ROOT) exists before serving traffic.
+await initStorageRoot(env.UPLOAD_ROOT);
 
 const app = createApp();
 

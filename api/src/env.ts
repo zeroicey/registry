@@ -34,6 +34,19 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   BODY_LIMIT_BYTES: z.coerce.number().int().positive().default(1_048_576),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  // ── File storage (local folder, intranet single-user) ──────────────────
+  // Root directory for user attachments. In production the deployment mounts
+  // a Docker volume here (see deploy/compose.yml) so all files live in one
+  // host folder — easy to back up / migrate by copying that directory.
+  UPLOAD_ROOT: z.string().default('./storage/files'),
+  // Per-file size cap for uploads (bytes). The global bodyLimit is widened to
+  // UPLOAD_MAX_SIZE + 1MB so multipart requests pass through; the real per-file
+  // check happens in files.service (returns 413 when exceeded).
+  UPLOAD_MAX_SIZE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(50 * 1024 * 1024),
 });
 
 const parsed = envSchema.safeParse(process.env);

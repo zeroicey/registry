@@ -29,13 +29,22 @@ describe('router', () => {
     expect(await screen.findByRole('heading', { name: '人员' })).toBeInTheDocument();
   });
 
-  it('renders the user detail page with 资料 (profile) and 留言 (comments) tabs', async () => {
+  it('renders the user detail page with 资料, 附件, and 留言 tabs', async () => {
     renderAt('/users/1');
     expect(await screen.findByRole('navigation', { name: '人员详情页签' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '编辑' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '删除' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '资料' })).toHaveAttribute('href', '/users/1');
+    expect(screen.getByRole('link', { name: '附件' })).toHaveAttribute('href', '/users/1/files');
     expect(screen.getByRole('link', { name: '留言' })).toHaveAttribute('href', '/users/1/comments');
+  });
+
+  it('renders files under the user detail tab', async () => {
+    renderAt('/users/1/files');
+    expect(await screen.findByRole('link', { name: '附件' })).toHaveAttribute(
+      'href',
+      '/users/1/files',
+    );
   });
 
   it('renders comments under the user detail tab', async () => {

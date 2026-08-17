@@ -18,6 +18,9 @@ services:
       - .env
     environment:
       PORT: 3000
+      UPLOAD_ROOT: /app/storage/files
+    volumes:
+      - ./storage/files:/app/storage/files
     ports:
       - "127.0.0.1:3100:3000"
       - "${LAN_IP}:3100:3000"

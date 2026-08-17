@@ -17,13 +17,14 @@ import { useDeleteUser, useUser } from '../queries';
 
 const TAB_LINKS = [
   { to: '', label: '资料', end: true },
+  { to: 'files', label: '附件', end: false },
   { to: 'comments', label: '留言', end: false },
 ];
 
 /**
  * 详情页壳：单行 header（名字 + Tab + 图标操作按钮）+ Outlet。
  * 编辑弹窗（基本信息和属性一体编辑）在头部，任何 Tab 下都可进入；
- * 留言 Tab 独立子路由（后续将加附件等能力）。
+ * 附件和留言 Tab 都是独立子路由，分别承载文件和时间流。
  */
 export function UserDetailPage() {
   const { id } = useParams();

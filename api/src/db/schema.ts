@@ -21,7 +21,8 @@ import {
  * - `attributes.config` carries validation/form rules (options,
  *   min/max, regex, sort_order, ...); app layer builds Zod validators from it.
  * - Soft delete = `deleted_at IS NOT NULL` + partial unique index on `key`.
- * - `attachments` is deferred to v1.1 (needs MinIO) — not defined here yet.
+ * - `files` = user attachments backed by a local folder (UPLOAD_ROOT), a Docker
+ *   volume in production — v1.1 附件能力，内网单用户、不引入 MinIO（见 .ai/decisions.md）。
  */
 
 /** Attribute value types. Extend here (e.g. add types) + in the enum migration. */
@@ -153,6 +154,26 @@ export const comments = pgTable(
   (table) => [index('comments_user_id_idx').on(table.userId)],
 );
 
+/** 用户附件：挂在一个登记对象（人员）名下的一组文件，不做内部再分类 */
+export const files = pgTable(
+  'files',
+  {
+    id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** 上传时的原始文件名。 */
+    originalName: text('original_name').notNull(),
+    /** 相对物理路径（objects/{mime-main}/{YYYY}/{MM}/{uuid}{ext}），不对外公开。 */
+    storagePath: text('storage_path').notNull(),
+    mimeType: text('mime_type').notNull(),
+    /** 文件字节数。 */
+    size: bigint({ mode: 'number' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('files_user_id_idx').on(table.userId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Attribute = typeof attributes.$inferSelect;
@@ -163,3 +184,5 @@ export type AttributeValueHistory = typeof attributeValueHistory.$inferSelect;
 export type NewAttributeValueHistory = typeof attributeValueHistory.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+export type FileRow = typeof files.$inferSelect;
+export type NewFileRow = typeof files.$inferInsert;

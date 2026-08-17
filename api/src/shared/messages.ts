@@ -40,6 +40,13 @@ export const Msg = {
   COMMENT_FETCHED: 'Comments fetched successfully',
   COMMENT_UPDATED: 'Comment updated successfully',
   COMMENT_DELETED: 'Comment deleted successfully',
+  // ── files ──
+  FILE_NOT_FOUND: 'File not found',
+  FILE_REQUIRED: 'A file is required',
+  FILE_UPLOADED: 'File uploaded successfully',
+  FILE_LISTED: 'Files fetched successfully',
+  FILE_DELETED: 'File deleted successfully',
+  FILE_CLEANED: 'Orphan files cleaned successfully',
 } as const satisfies Record<string, string>;
 
 export type Message = (typeof Msg)[keyof typeof Msg];

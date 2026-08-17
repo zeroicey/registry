@@ -5,6 +5,7 @@ import { env } from '@/env';
 import { requestLogger, security } from '@/middleware';
 import { attributesRouter } from '@/modules/attributes/attributes.router';
 import { commentsRouter } from '@/modules/comments/comments.router';
+import { filesRouter } from '@/modules/files/files.router';
 import { healthRouter } from '@/modules/health/health.router';
 import { usersRouter } from '@/modules/users/users.router';
 import { onError } from '@/shared/error-handler';
@@ -37,6 +38,7 @@ export function createApp(): Hono {
   app.route('/api/attributes', attributesRouter);
   app.route('/api/users', usersRouter);
   app.route('/api', commentsRouter); // POST/GET /api/users/:userId/comments, PATCH/DELETE /api/comments/:id
+  app.route('/api', filesRouter); // POST/GET /api/users/:userId/files, GET/DELETE /api/files/:id(...), POST /api/files/cleanup-orphans
 
   // Production only: serve the built SPA from the same origin. Registered
   // after the API routers so /users etc. always hit the API first.
