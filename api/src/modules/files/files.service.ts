@@ -30,7 +30,14 @@ function errorMessage(err: unknown): string {
  */
 export function normalizeMimeType(provided: string, originalName: string): string {
   const trimmed = provided.trim();
-  if (/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i.test(trimmed)) return trimmed.toLowerCase();
+  const mainType = trimmed.split('/')[0] ?? '';
+  if (
+    mainType !== '.' &&
+    mainType !== '..' &&
+    /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i.test(trimmed)
+  ) {
+    return trimmed.toLowerCase();
+  }
   const ext = originalName.toLowerCase();
   const byExt: Record<string, string> = {
     '.pdf': 'application/pdf',
@@ -113,7 +120,18 @@ export class FileService {
   async getContent(id: number): Promise<FileContent> {
     const row = await this.repo.getById(id);
     if (!row) throw new AppError('FILE_NOT_FOUND', Msg.FILE_NOT_FOUND);
-    const { body, size } = await openFileFromStorage(this.root, row.storagePath);
+
+    let stored: Awaited<ReturnType<typeof openFileFromStorage>>;
+    try {
+      stored = await openFileFromStorage(this.root, row.storagePath);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new AppError('FILE_NOT_FOUND', Msg.FILE_NOT_FOUND);
+      }
+      throw err;
+    }
+
+    const { body, size } = stored;
     return {
       body,
       size,

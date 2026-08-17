@@ -47,8 +47,13 @@ export class DrizzleFileRepository implements FileRepository {
   }
 
   async getById(id: number): Promise<FileRow | undefined> {
-    const rows = await db.select().from(files).where(eq(files.id, id)).limit(1);
-    return rows[0];
+    const rows = await db
+      .select({ file: files })
+      .from(files)
+      .innerJoin(users, eq(files.userId, users.id))
+      .where(and(eq(files.id, id), isNull(users.deletedAt)))
+      .limit(1);
+    return rows[0]?.file;
   }
 
   async list(
@@ -72,6 +77,8 @@ export class DrizzleFileRepository implements FileRepository {
   }
 
   async remove(id: number): Promise<boolean> {
+    const target = await this.getById(id);
+    if (!target) return false;
     const rows = await db.delete(files).where(eq(files.id, id)).returning({ id: files.id });
     return rows.length > 0;
   }

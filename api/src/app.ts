@@ -38,7 +38,7 @@ export function createApp(): Hono {
   app.route('/api/attributes', attributesRouter);
   app.route('/api/users', usersRouter);
   app.route('/api', commentsRouter); // POST/GET /api/users/:userId/comments, PATCH/DELETE /api/comments/:id
-  app.route('/api', filesRouter); // POST/GET /api/users/:userId/files, GET/DELETE /api/files/:id(...), POST /api/files/cleanup-orphans
+  app.route('/api', filesRouter); // POST/GET /api/users/:userId/files, GET/DELETE /api/files/:id/content
 
   // Production only: serve the built SPA from the same origin. Registered
   // after the API routers so /users etc. always hit the API first.

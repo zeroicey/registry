@@ -195,6 +195,22 @@ describe('FileService', () => {
     await expect(s.getContent(999)).rejects.toMatchObject({ code: 'FILE_NOT_FOUND' });
   });
 
+  test('getContent maps a missing physical file to FILE_NOT_FOUND', async () => {
+    const { repo, store } = makeFakeRepo();
+    const row: FileRow = {
+      id: 1,
+      userId: 1,
+      originalName: 'gone.txt',
+      storagePath: 'text/2026/01/gone.txt',
+      mimeType: 'text/plain',
+      size: 4,
+      createdAt: new Date(baseTime),
+    };
+    store.set(row.id, row);
+    const s = new FileService(repo, newRoot(), MAX_SIZE);
+    await expect(s.getContent(row.id)).rejects.toMatchObject({ code: 'FILE_NOT_FOUND' });
+  });
+
   test('remove deletes the record but keeps the physical file on disk', async () => {
     const { repo, users, store } = makeFakeRepo();
     const root = newRoot();
@@ -247,5 +263,10 @@ describe('normalizeMimeType', () => {
     expect(normalizeMimeType('', 'data.xlsx')).toBe(
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
+  });
+
+  test('rejects path-like MIME main types', () => {
+    expect(normalizeMimeType('../x', 'payload.bin')).toBe('application/octet-stream');
+    expect(normalizeMimeType('image/../x', 'payload.bin')).toBe('application/octet-stream');
   });
 });

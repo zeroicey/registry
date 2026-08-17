@@ -15,24 +15,17 @@ sudo chown -R 10001:10001 /srv/compose/registry/storage/files
 ## 首次部署
 
 ```bash
-# 1. 构建镜像（仓库根，多阶段：web 构建 → api 合并）
-docker build -t zeroicey/registry-api:latest .
-
-# 2. 导出并传到 hpcore
-docker save zeroicey/registry-api:latest | gzip > registry-api-latest.tar.gz
-scp registry-api-latest.tar.gz hpcore:/srv/compose/registry/
-
-# 3. 在 hpcore 上加载镜像
-ssh hpcore 'docker load < /srv/compose/registry/registry-api-latest.tar.gz'
-
-# 4. 准备配置（compose.yml + .env，secrets 在 .env 里）
+# 1. 准备配置（compose.yml + .env，secrets 在 .env 里）
 scp deploy/compose.yml hpcore:/srv/compose/registry/
 # 在 hpcore 上编辑：vim /srv/compose/registry/.env（模板见 deploy/.env.example，
 # DATABASE_URL 指向 hpcore postgres 上的 registry 库）
 # 目录 /srv/compose/registry/storage/files 会作为 UPLOAD_ROOT 的宿主机数据卷，
 # 里面的文件就是用户附件；备份/迁移时直接拷这个目录即可。
 
-# 5. 启动
+# 2. GHCR 镜像由 GitHub Actions 在 push main 后自动构建并推送
+ssh hpcore 'cd /srv/compose/registry && docker compose pull'
+
+# 3. 启动
 ssh hpcore 'cd /srv/compose/registry && docker compose up -d'
 ssh hpcore 'docker ps | grep registry-api'   # 期望 healthy
 ```
@@ -49,10 +42,8 @@ DATABASE_URL='postgres://registry:PASSWORD@10.126.126.2:5432/registry' bun run d
 ## 更新发布
 
 ```bash
-docker build -t zeroicey/registry-api:latest .
-docker save zeroicey/registry-api:latest | gzip > registry-api-latest.tar.gz
-scp registry-api-latest.tar.gz hpcore:/srv/compose/registry/
-ssh hpcore 'docker load < /srv/compose/registry/registry-api-latest.tar.gz && cd /srv/compose/registry && docker compose up -d --force-recreate'
+# GitHub Actions 会在 push main 后构建并推送 GHCR 镜像
+ssh hpcore 'cd /srv/compose/registry && docker compose pull && docker compose up -d --force-recreate'
 ```
 
 ## 验证

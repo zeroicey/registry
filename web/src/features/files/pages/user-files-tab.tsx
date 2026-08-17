@@ -85,6 +85,9 @@ export function UserFilesTab() {
   const confirmDelete = () => {
     if (!deleting) return;
     deleteMutation.mutate(deleting.id, {
+      onSuccess: () => {
+        if (items.length === 1 && page > 1) setPage((current) => current - 1);
+      },
       onSettled: () => setDeleting(null),
     });
   };

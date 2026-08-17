@@ -24,7 +24,7 @@ const CommentsTab = lazy(() =>
   import('@/features/comments').then((m) => ({ default: m.CommentsTab })),
 );
 const UserFilesTab = lazy(() =>
-  import('@/features/files').then((m) => ({ default: m.UserFilesTab })),
+  import('@/features/files/index').then((m) => ({ default: m.UserFilesTab })),
 );
 
 /** Route config — the single place where every route is declared. */

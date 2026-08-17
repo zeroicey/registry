@@ -1,6 +1,6 @@
 import type { Dirent } from 'node:fs';
 import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises';
-import { dirname, extname, join, relative } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { logger } from '@/shared/logger';
 
 /**
@@ -23,7 +23,13 @@ function objectsRoot(root: string): string {
 }
 
 function managedPath(root: string, relativePath: string): string {
-  return join(objectsRoot(root), relativePath);
+  const base = resolve(objectsRoot(root));
+  const candidate = resolve(base, relativePath);
+  const fromBase = relative(base, candidate);
+  if (fromBase === '..' || fromBase.startsWith(`..${sep}`) || isAbsolute(fromBase)) {
+    throw new Error(`非法存储路径: ${relativePath}`);
+  }
+  return candidate;
 }
 
 /** Create the storage root (and objects/). Idempotent. */
