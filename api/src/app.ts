@@ -7,6 +7,7 @@ import { attributesRouter } from '@/modules/attributes/attributes.router';
 import { commentsRouter } from '@/modules/comments/comments.router';
 import { filesRouter } from '@/modules/files/files.router';
 import { healthRouter } from '@/modules/health/health.router';
+import { sourceFilesRouter } from '@/modules/source-files/source-files.router';
 import { usersRouter } from '@/modules/users/users.router';
 import { onError } from '@/shared/error-handler';
 import { Msg } from '@/shared/messages';
@@ -39,6 +40,7 @@ export function createApp(): Hono {
   app.route('/api/users', usersRouter);
   app.route('/api', commentsRouter); // POST/GET /api/users/:userId/comments, PATCH/DELETE /api/comments/:id
   app.route('/api', filesRouter); // POST/GET /api/users/:userId/files, GET/DELETE /api/files/:id/content
+  app.route('/api/source-files', sourceFilesRouter); // POST/GET /api/source-files, GET /api/source-files/:id/content
 
   // Production only: serve the built SPA from the same origin. Registered
   // after the API routers so /users etc. always hit the API first.

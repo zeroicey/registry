@@ -26,6 +26,9 @@ const CommentsTab = lazy(() =>
 const UserFilesTab = lazy(() =>
   import('@/features/files/index').then((m) => ({ default: m.UserFilesTab })),
 );
+const SourceFilesPage = lazy(() =>
+  import('@/features/source-files').then((m) => ({ default: m.SourceFilesPage })),
+);
 
 /** Route config — the single place where every route is declared. */
 export const routes: RouteObject[] = [
@@ -47,6 +50,7 @@ export const routes: RouteObject[] = [
         ],
       },
       { path: 'attributes', element: <AttributesPage /> },
+      { path: 'source-files', element: <SourceFilesPage /> },
       // Fallback: unknown paths render the not-found page inside the layout.
       { path: '*', element: <NotFoundPage /> },
     ],

@@ -22,6 +22,7 @@ export const ERROR_CODES = {
   ATTRIBUTE_TYPE_LOCKED: 409,
   COMMENT_NOT_FOUND: 404,
   FILE_NOT_FOUND: 404,
+  SOURCE_FILE_NOT_FOUND: 404,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

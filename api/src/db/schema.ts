@@ -36,6 +36,19 @@ export const attributeTypeEnum = pgEnum('attribute_type', [
 
 export type AttributeType = (typeof attributeTypeEnum.enumValues)[number];
 
+/**
+ * How a user row entered the system — written by the importer (a script run
+ * by an external AI agent) or left as the default when a user is created by
+ * hand. Manual = created through the UI/API; file = imported from a source
+ * file (see user_source_files).
+ */
+export const sourceTypeEnum = pgEnum('source_type', ['manual', 'file']);
+export type SourceType = (typeof sourceTypeEnum.enumValues)[number];
+
+/** Lifecycle of a source file: uploaded but not yet imported, or imported. */
+export const sourceFileStatusEnum = pgEnum('source_file_status', ['uploaded', 'imported']);
+export type SourceFileStatus = (typeof sourceFileStatusEnum.enumValues)[number];
+
 /** Validation & form rules for an attribute — validated by Zod at the app layer. */
 export interface AttributeConfig {
   /** Form rendering order (ascending). */
@@ -61,6 +74,8 @@ export const users = pgTable(
     realName: text('real_name').notNull(),
     /** National id — nullable, unique when set. */
     code: text('code'),
+    /** Provenance: manual (UI/API) or file (imported from a source_file). */
+    sourceType: sourceTypeEnum('source_type').notNull().default('manual'),
     /** Soft delete: NULL = active. Re-creating a code after delete is allowed. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -174,6 +189,49 @@ export const files = pgTable(
   (table) => [index('files_user_id_idx').on(table.userId)],
 );
 
+/**
+ * 数据来源文件：一条人员数据「从哪个文件来」的溯源锚点。
+ *
+ * 独立于 files（用户附件）表 —— 附件挂在某个人员名下，来源文件是全局
+ * 资源（一次导入一批人），语义与删除/权限都不同，不混用（见 .ai/decisions.md）。
+ * 物理文件落在 UPLOAD_ROOT/source-files/（与 objects/ 平级，互不干扰）。
+ */
+export const sourceFiles = pgTable('source_files', {
+  id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
+  /** 上传时的原始文件名。 */
+  originalName: text('original_name').notNull(),
+  /** 相对物理路径（source-files/{YYYY}/{MM}/{uuid}{ext}），不对外公开。 */
+  storagePath: text('storage_path').notNull(),
+  mimeType: text('mime_type').notNull(),
+  /** 文件字节数。 */
+  size: bigint({ mode: 'number' }).notNull(),
+  /** uploaded = 已上传未导入；imported = 已由外部 AI 导入并完成溯源标记。 */
+  status: sourceFileStatusEnum('status').notNull().default('uploaded'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * user ↔ source_file 多对多关联：一个用户可来自多个文件（重复导入合并时
+ * 追加来源行），一个文件也自然对应多个用户。source_type='file' 时至少一行。
+ */
+export const userSourceFiles = pgTable(
+  'user_source_files',
+  {
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    sourceFileId: bigint('source_file_id', { mode: 'number' })
+      .notNull()
+      .references(() => sourceFiles.id, { onDelete: 'cascade' }),
+    /** 该来源行建立的时间（即导入时间）。 */
+    importedAt: timestamp('imported_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ name: 'user_source_files_pk', columns: [table.userId, table.sourceFileId] }),
+    index('user_source_files_source_file_id_idx').on(table.sourceFileId),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Attribute = typeof attributes.$inferSelect;
@@ -186,3 +244,7 @@ export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
 export type FileRow = typeof files.$inferSelect;
 export type NewFileRow = typeof files.$inferInsert;
+export type SourceFileRow = typeof sourceFiles.$inferSelect;
+export type NewSourceFileRow = typeof sourceFiles.$inferInsert;
+export type UserSourceFileRow = typeof userSourceFiles.$inferSelect;
+export type NewUserSourceFileRow = typeof userSourceFiles.$inferInsert;

@@ -15,27 +15,49 @@ import { logger } from '@/shared/logger';
  * - Deleting is best-effort and ENOENT-tolerant (record may be gone already).
  */
 
-/** Sub-directory that holds managed file objects. */
+/** Sub-directory that holds managed attachment objects. */
 export const OBJECTS_DIR = 'objects';
+
+/** Sub-directory that holds uploaded source files (import provenance). */
+export const SOURCE_FILES_DIR = 'source-files';
 
 function objectsRoot(root: string): string {
   return join(root, OBJECTS_DIR);
 }
 
-function managedPath(root: string, relativePath: string): string {
-  const base = resolve(objectsRoot(root));
-  const candidate = resolve(base, relativePath);
-  const fromBase = relative(base, candidate);
+function sourceRoot(root: string): string {
+  return join(root, SOURCE_FILES_DIR);
+}
+
+/** Resolve a relative storage path against a base, refusing traversal escapes. */
+function safeJoin(base: string, relativePath: string): string {
+  const baseAbs = resolve(base);
+  const candidate = resolve(baseAbs, relativePath);
+  const fromBase = relative(baseAbs, candidate);
   if (fromBase === '..' || fromBase.startsWith(`..${sep}`) || isAbsolute(fromBase)) {
     throw new Error(`非法存储路径: ${relativePath}`);
   }
   return candidate;
 }
 
+function managedPath(root: string, relativePath: string): string {
+  return safeJoin(objectsRoot(root), relativePath);
+}
+
+function managedSourcePath(root: string, relativePath: string): string {
+  return safeJoin(sourceRoot(root), relativePath);
+}
+
 /** Create the storage root (and objects/). Idempotent. */
 export async function initStorageRoot(root: string): Promise<void> {
-  await mkdir(objectsRoot(root), { recursive: true });
-  logger.info({ root, objectsRoot: objectsRoot(root) }, '存储根目录初始化完成');
+  await Promise.all([
+    mkdir(objectsRoot(root), { recursive: true }),
+    mkdir(sourceRoot(root), { recursive: true }),
+  ]);
+  logger.info(
+    { root, objectsRoot: objectsRoot(root), sourceRoot: sourceRoot(root) },
+    '存储根目录初始化完成',
+  );
 }
 
 /**
@@ -51,6 +73,19 @@ export function buildStoragePath(mimeType: string, id: string, originalName: str
   return join(mainType, year, month, `${id}${ext}`);
 }
 
+/**
+ * Build a relative storage path for a new source file:
+ * `{YYYY}/{MM}/{uuid}{ext}` (no mime sub-directory — source files are few and
+ * browsable by date alone).
+ */
+export function buildSourceFilePath(id: string, originalName: string): string {
+  const now = new Date();
+  const year = now.getFullYear().toString();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const ext = extname(originalName).slice(0, 32).toLowerCase();
+  return join(year, month, `${id}${ext}`);
+}
+
 /** Write bytes to disk, creating parent directories as needed. */
 export async function saveFile(
   root: string,
@@ -58,6 +93,17 @@ export async function saveFile(
   data: Uint8Array,
 ): Promise<void> {
   const abs = managedPath(root, relativePath);
+  await mkdir(dirname(abs), { recursive: true });
+  await writeFile(abs, data);
+}
+
+/** Write source-file bytes under {UPLOAD_ROOT}/source-files/. */
+export async function saveSourceFile(
+  root: string,
+  relativePath: string,
+  data: Uint8Array,
+): Promise<void> {
+  const abs = managedSourcePath(root, relativePath);
   await mkdir(dirname(abs), { recursive: true });
   await writeFile(abs, data);
 }
@@ -79,10 +125,37 @@ export async function openFileFromStorage(
   return { body, size: body.size };
 }
 
+/** Open a source file without reading it fully into memory. */
+export async function openSourceFileFromStorage(
+  root: string,
+  relativePath: string,
+): Promise<{ body: Blob; size: number }> {
+  const body = Bun.file(managedSourcePath(root, relativePath));
+  if (!(await body.exists())) {
+    const err = new Error(`文件不存在: ${relativePath}`) as NodeJS.ErrnoException;
+    err.code = 'ENOENT';
+    throw err;
+  }
+  return { body, size: body.size };
+}
+
 /** Delete a file, ignoring ENOENT (already gone). */
 export async function deleteFileFromStorage(root: string, relativePath: string): Promise<void> {
   try {
     await unlink(managedPath(root, relativePath));
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
+    if (e.code !== 'ENOENT') throw err;
+  }
+}
+
+/** Delete a source file, ignoring ENOENT (used for upload rollback). */
+export async function deleteSourceFileFromStorage(
+  root: string,
+  relativePath: string,
+): Promise<void> {
+  try {
+    await unlink(managedSourcePath(root, relativePath));
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code !== 'ENOENT') throw err;

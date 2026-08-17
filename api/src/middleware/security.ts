@@ -63,8 +63,8 @@ export const security: MiddlewareHandler[] = (() => {
     async (c, next) => {
       const isFileUpload =
         c.req.method === 'POST' &&
-        c.req.path.startsWith('/api/users/') &&
-        c.req.path.endsWith('/files');
+        (c.req.path === '/api/source-files' ||
+          (c.req.path.startsWith('/api/users/') && c.req.path.endsWith('/files')));
       return (isFileUpload ? uploadBodyLimit : defaultBodyLimit)(c, next);
     },
     timeout(env.REQUEST_TIMEOUT_MS, new HTTPException(408, { message: Msg.REQUEST_TIMEOUT })),

@@ -10,6 +10,7 @@ import { useUIStore } from '@/stores/ui-store';
 const NAV_LINKS = [
   { to: '/users', label: '人员管理' },
   { to: '/attributes', label: '属性配置' },
+  { to: '/source-files', label: '数据源' },
 ];
 
 export function AppNavbar() {

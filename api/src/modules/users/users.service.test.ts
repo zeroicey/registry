@@ -12,6 +12,7 @@ function makeUser(id: number, overrides: Partial<User> = {}): User {
     id,
     realName: '张三',
     code: null,
+    sourceType: 'manual',
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
