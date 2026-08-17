@@ -46,7 +46,6 @@ export const Msg = {
   FILE_UPLOADED: 'File uploaded successfully',
   FILE_LISTED: 'Files fetched successfully',
   FILE_DELETED: 'File deleted successfully',
-  FILE_CLEANED: 'Orphan files cleaned successfully',
 } as const satisfies Record<string, string>;
 
 export type Message = (typeof Msg)[keyof typeof Msg];

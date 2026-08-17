@@ -54,9 +54,3 @@ export async function deleteFileHandler(c: HandlerCtx<{ param: FileParams }>): P
   await fileService.remove(id);
   return Res.noContent(Msg.FILE_DELETED).build(c);
 }
-
-/** Manual orphan-file cleanup: `POST /api/files/cleanup-orphans` (intranet, no auth in v1). */
-export async function cleanupOrphanFilesHandler(c: Context): Promise<Response> {
-  const result = await fileService.cleanupOrphanFiles();
-  return Res.ok(Msg.FILE_CLEANED, result).build(c);
-}

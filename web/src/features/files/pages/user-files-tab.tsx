@@ -36,14 +36,21 @@ export function UserFilesTab() {
     }));
     setUploadingFiles((current) => [...rows, ...current]);
 
-    const results = await Promise.allSettled(
-      files.map(async (file, index) => {
+    // Keep at most two multipart requests in flight. Each request may hold a
+    // 50MB File in memory, so unbounded multi-select would amplify the peak.
+    let nextIndex = 0;
+    const uploadWorker = async (): Promise<boolean[]> => {
+      const results: boolean[] = [];
+      while (nextIndex < files.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        const file = files[index];
         const row = rows[index];
-        if (!row) return;
+        if (!file || !row) continue;
         try {
           await uploadMutation.mutateAsync(file);
           setUploadingFiles((current) => current.filter((item) => item.id !== row.id));
-          return { ok: true };
+          results.push(true);
         } catch (err) {
           setUploadingFiles((current) =>
             current.map((item) =>
@@ -52,14 +59,17 @@ export function UserFilesTab() {
                 : item,
             ),
           );
-          return { ok: false };
+          results.push(false);
         }
-      }),
-    );
+      }
+      return results;
+    };
 
-    const succeeded = results.filter(
-      (result) => result.status === 'fulfilled' && result.value?.ok === true,
-    ).length;
+    const workerCount = Math.min(2, files.length);
+    const workerResults = await Promise.all(
+      Array.from({ length: workerCount }, () => uploadWorker()),
+    );
+    const succeeded = workerResults.flat().filter(Boolean).length;
     if (succeeded > 0) toast.success(`已上传 ${succeeded} 个附件`);
   };
 

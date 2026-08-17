@@ -36,7 +36,7 @@ export interface PaginatedResult<T> {
   pageSize: number;
 }
 
-/** Result of DELETE /api/files/cleanup-orphans. */
+/** Result of a future restricted orphan-cleanup command. */
 export interface CleanupResult {
   checked: number;
   deleted: string[];
