@@ -5,9 +5,13 @@
 .codegraph
 # .pi/ 其余内容（APPEND_SYSTEM.md、extensions/、skills/）纳入版本管理；仅排除运行时状态
 .pi/decision-auditor/
+.pi/tasks/
 
 # Dependencies
 node_modules/
+
+# Go CLI build artifacts (cli/)
+cli/bin/
 
 # Build output
 dist/
@@ -28,7 +32,6 @@ logs/
 .DS_Store
 .idea/
 *.swp
-# 本地隐私工具（含数据路径，勿提交）
-import-xlsx.ts
-api/backfill-source.ts
-api/backfill-collection.ts
+# 本地隐私工具（含数据路径/DB 凭据，勿提交）
+# 一次性导入/回填/诊断脚本都放这里，整个目录忽略
+scripts/local/

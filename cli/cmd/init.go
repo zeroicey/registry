@@ -1,0 +1,128 @@
+package cmd
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/zeroicey/registry-cli/internal/client"
+	"github.com/zeroicey/registry-cli/internal/config"
+)
+
+// initCmd represents the registry init command.
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "初始化 Registry CLI 配置",
+	Long: `初始化 Registry CLI 配置，交互式提示输入 baseurl 和 token。
+配置文件保存在 ~/.registry/config.yaml。
+
+也可以通过命令行参数直接设置：
+  registry init --baseurl http://localhost:3000`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Loads the existing config (or defaults) so re-init can reuse values.
+		// The path is already pinned by PersistentPreRunE via --config/-c.
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+
+		scanner := bufio.NewScanner(os.Stdin)
+
+		// Prompts are written to stderr so stdout stays a clean channel (and a
+		// single parseable JSON document in --json mode).
+		eof := false
+		if flagBaseURL != "" {
+			cfg.BaseURL = flagBaseURL
+		} else {
+			fmt.Fprintf(os.Stderr, "API 服务地址 [%s]: ", cfg.BaseURL)
+			if scanner.Scan() {
+				input := strings.TrimSpace(scanner.Text())
+				if input != "" {
+					cfg.BaseURL = input
+				}
+			} else {
+				eof = true
+			}
+		}
+
+		if flagToken != "" {
+			cfg.Token = flagToken
+		} else {
+			fmt.Fprintf(os.Stderr, "API 令牌（预留，直接回车跳过）[%s]: ", maskToken(cfg.Token))
+			if scanner.Scan() {
+				input := strings.TrimSpace(scanner.Text())
+				if input != "" {
+					cfg.Token = input
+				}
+			} else {
+				eof = true
+			}
+		}
+
+		// Non-interactive stdin (pipe, CI, AI agent) hits EOF immediately: the
+		// prompts above read nothing. Without explicit --baseurl/--token this
+		// would silently write the untouched default/localhost config, which is
+		// never what the caller asked for. Fail loudly instead.
+		if eof && flagBaseURL == "" && flagToken == "" {
+			return errors.New("检测到非交互式输入（EOF）：请通过 --baseurl/--token 参数指定，或在终端中运行 registry init")
+		}
+
+		// Fail fast on a malformed baseurl at write time, so a typo (typed here
+		// or passed via --baseurl) never lands in the file. `config set baseurl`
+		// is then the repair command, and nothing else ever reads a bad value.
+		if err := client.ValidateBaseURL(cfg.BaseURL); err != nil {
+			return err
+		}
+
+		if err := config.Save(cfg); err != nil {
+			return err
+		}
+
+		configPath, err := config.Path()
+		if err != nil {
+			return err
+		}
+		if useJSON {
+			// Never echo the raw token to stdout: --json output is captured and
+			// logged by AI/script consumers. Mirror the masking used in table mode.
+			printer.PrintSuccess("配置已保存", map[string]any{
+				"configPath": configPath,
+				"baseurl":    cfg.BaseURL,
+				"token":      maskToken(cfg.Token),
+			})
+			return nil
+		}
+
+		printer.PrintMessage("✓ 配置已保存到 " + configPath)
+		printer.PrintMessage("")
+		kv := map[string]string{"baseurl": cfg.BaseURL}
+		if cfg.Token != "" {
+			kv["token"] = maskToken(cfg.Token)
+		} else {
+			kv["token"] = "(未设置)"
+		}
+		printer.PrintKeyValue(kv)
+
+		return nil
+	},
+}
+
+// maskToken masks a token for display: keeps the first and last 4 characters,
+// masking everything in between. Short tokens are fully masked. Empty stays
+// empty so "(未设置)" logic in callers works unchanged.
+func maskToken(token string) string {
+	if token == "" {
+		return ""
+	}
+	if len(token) <= 8 {
+		return strings.Repeat("*", len(token))
+	}
+	return token[:4] + strings.Repeat("*", len(token)-8) + token[len(token)-4:]
+}
+
+func init() {
+	rootCmd.AddCommand(initCmd)
+}
