@@ -53,15 +53,8 @@ export class UnauthorizedLoginError extends Error {}
  * tests can supply a fake IdP without touching the global module registry.
  */
 export interface OidcClientLike {
-  discovery(
-    issuerUrl: URL,
-    clientId: string,
-    clientSecret: string,
-  ): Promise<oidc.Configuration>;
-  buildAuthorizationUrl(
-    config: oidc.Configuration,
-    params: Record<string, string>,
-  ): URL;
+  discovery(issuerUrl: URL, clientId: string, clientSecret: string): Promise<oidc.Configuration>;
+  buildAuthorizationUrl(config: oidc.Configuration, params: Record<string, string>): URL;
   authorizationCodeGrant(
     config: oidc.Configuration,
     currentUrl: URL,
@@ -109,11 +102,8 @@ export class AuthService {
 
   verifySessionCookie(value: string): boolean {
     if (!this.isAuthEnabled()) return true; // dev without auth: everything passes
-    return verifySessionValue(
-      this.config.sessionSecret ?? '',
-      value,
-      Math.floor(Date.now() / 1000),
-    ).valid;
+    return verifySessionValue(this.config.sessionSecret ?? '', value, Math.floor(Date.now() / 1000))
+      .valid;
   }
 
   // ---- OIDC client discovery ------------------------------------------------

@@ -53,7 +53,10 @@ function makeService(ttlSeconds?: number): AuthService {
   );
 }
 
-async function loginThrough(service: AuthService, origin = 'http://100.64.0.1:3100'): Promise<string> {
+async function loginThrough(
+  service: AuthService,
+  origin = 'http://100.64.0.1:3100',
+): Promise<string> {
   const authorizeUrl = await service.buildOidcAuthorizeUrl(origin);
   const url = new URL(authorizeUrl);
   expect(url.origin + url.pathname).toBe('https://auth.example.test/authorize');
@@ -139,8 +142,12 @@ describe('OIDC login flow', () => {
     const service = makeService();
     const ipQuery = await loginThrough(service, 'http://100.64.0.1:3100');
     const dnsQuery = await loginThrough(service, 'http://hpcore.hpnet.internal:3100');
-    await expect(service.handleOidcCallback({ query: ipQuery })).resolves.toEqual({ sub: 'sub-123' });
-    await expect(service.handleOidcCallback({ query: dnsQuery })).resolves.toEqual({ sub: 'sub-123' });
+    await expect(service.handleOidcCallback({ query: ipQuery })).resolves.toEqual({
+      sub: 'sub-123',
+    });
+    await expect(service.handleOidcCallback({ query: dnsQuery })).resolves.toEqual({
+      sub: 'sub-123',
+    });
   });
 
   test('unsupported web origins are refused before touching the auth center', async () => {

@@ -36,9 +36,7 @@ const LoginPage = lazy(() => import('@/features/auth').then((m) => ({ default: m
 const OidcCallbackPage = lazy(() =>
   import('@/features/auth').then((m) => ({ default: m.OidcCallbackPage })),
 );
-const AuthGuard = lazy(() =>
-  import('@/features/auth').then((m) => ({ default: m.AuthGuard })),
-);
+const AuthGuard = lazy(() => import('@/features/auth').then((m) => ({ default: m.AuthGuard })));
 
 /** Route config — the single place where every route is declared. */
 export const routes: RouteObject[] = [
@@ -55,24 +53,24 @@ export const routes: RouteObject[] = [
         path: '/',
         element: <AppLayout />,
         children: [
-      // Root redirects to the main scene (no auth wall in v1).
-      { index: true, element: <Navigate to="/users" replace /> },
-      { path: 'users', element: <UsersPage /> },
-      { path: 'users/new', element: <NewUserPage /> },
-      {
-        path: 'users/:id',
-        element: <UserDetailPage />,
-        children: [
-          { index: true, element: <UserOverview /> },
-          { path: 'files', element: <UserFilesTab /> },
-          { path: 'comments', element: <CommentsTab /> },
-        ],
-      },
-      { path: 'attributes', element: <AttributesPage /> },
-      { path: 'source-files', element: <SourceFilesPage /> },
-      { path: 'collections', element: <CollectionsPage /> },
-      // Fallback: unknown paths render the not-found page inside the layout.
-      { path: '*', element: <NotFoundPage /> },
+          // Root redirects to the main scene (no auth wall in v1).
+          { index: true, element: <Navigate to="/users" replace /> },
+          { path: 'users', element: <UsersPage /> },
+          { path: 'users/new', element: <NewUserPage /> },
+          {
+            path: 'users/:id',
+            element: <UserDetailPage />,
+            children: [
+              { index: true, element: <UserOverview /> },
+              { path: 'files', element: <UserFilesTab /> },
+              { path: 'comments', element: <CommentsTab /> },
+            ],
+          },
+          { path: 'attributes', element: <AttributesPage /> },
+          { path: 'source-files', element: <SourceFilesPage /> },
+          { path: 'collections', element: <CollectionsPage /> },
+          // Fallback: unknown paths render the not-found page inside the layout.
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],

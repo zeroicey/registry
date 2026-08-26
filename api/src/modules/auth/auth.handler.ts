@@ -20,9 +20,7 @@ import { Res } from '@/shared/response';
 /** Best-effort client ip for login logs (never security-critical here). */
 function clientIp(c: Context): string {
   return (
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
-    c.req.header('x-real-ip') ??
-    'unknown'
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? c.req.header('x-real-ip') ?? 'unknown'
   );
 }
 
