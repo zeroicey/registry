@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import { env } from '@/env';
+import { authMiddleware, authRouter } from '@/modules/auth';
 import { requestLogger, security } from '@/middleware';
 import { attributesRouter } from '@/modules/attributes/attributes.router';
 import { collectionsRouter } from '@/modules/collections/collections.router';
@@ -31,6 +32,13 @@ export function createApp(): Hono {
 
   // Unified error contract.
   app.onError(onError);
+
+  // Auth gate: every /api/* route requires a Pocket-ID session cookie, except
+  // /api/health and the /api/auth endpoints themselves (exempted inside the
+  // middleware). Dev/test without OIDC config opens the gate entirely.
+  app.use('/api/*', authMiddleware);
+
+  app.route('/api/auth', authRouter);
   app.notFound((c) => c.json({ success: false, message: Msg.NOT_FOUND, code: 'NOT_FOUND' }, 404));
 
   // Module routers — mounted under /api so the SPA can own every other path

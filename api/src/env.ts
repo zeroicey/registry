@@ -47,6 +47,14 @@ const envSchema = z.object({
     .int()
     .positive()
     .default(50 * 1024 * 1024),
+  // ── Auth (Pocket ID OIDC + stateless session cookie) ───────────────────
+  // All five are optional so dev/test can run with auth fully skipped.
+  // In production a fail-closed startup check below requires them.
+  SESSION_SECRET: z.string().min(32).optional(),
+  SESSION_TTL: z.coerce.number().int().positive().optional(),
+  OIDC_ISSUER: z.string().url().optional(),
+  OIDC_CLIENT_ID: z.string().min(1).optional(),
+  OIDC_CLIENT_SECRET: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -63,6 +71,19 @@ const envData = parsed.data;
 
 if (envData.NODE_ENV === 'production' && envData.DATABASE_URL === undefined) {
   throw new Error('DATABASE_URL is required when NODE_ENV=production.');
+}
+
+// Auth is fail-closed: a privacy-sensitive deployment must never boot with the
+// API left unauthenticated because of a missing variable.
+if (envData.NODE_ENV === 'production') {
+  const missingAuth = (
+    ['SESSION_SECRET', 'OIDC_ISSUER', 'OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET'] as const
+  ).filter((key) => !envData[key]);
+  if (missingAuth.length > 0) {
+    throw new Error(
+      `Missing required auth configuration when NODE_ENV=production: ${missingAuth.join(', ')}.`,
+    );
+  }
 }
 
 export const env = {

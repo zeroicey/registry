@@ -23,6 +23,7 @@
     "drizzle-orm": "latest",
     "hono": "latest",
     "hono-rate-limiter": "latest",
+    "openid-client": "^6.8.7",
     "pino": "latest",
     "pino-http": "latest",
     "postgres": "latest",

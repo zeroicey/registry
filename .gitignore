@@ -35,3 +35,6 @@ logs/
 # 本地隐私工具（含数据路径/DB 凭据，勿提交）
 # 一次性导入/回填/诊断脚本都放这里，整个目录忽略
 scripts/local/
+
+# Local secrets (Pocket ID credentials etc.) — never commit
+.secrets/
