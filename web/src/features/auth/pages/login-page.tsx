@@ -13,7 +13,8 @@ export function LoginPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border bg-card p-8 text-center shadow-sm">
-        <h1 className="text-lg font-semibold">{env.VITE_APP_NAME}</h1>
+        <img src="/logo.png" alt="" className="mx-auto size-16 dark:invert" aria-hidden="true" />
+        <h1 className="mt-4 text-lg font-semibold">{env.VITE_APP_NAME}</h1>
         <p className="mt-1 text-sm text-muted-foreground">私有系统 · 需通过认证中心登录</p>
         <Button
           className="mt-6 w-full"
