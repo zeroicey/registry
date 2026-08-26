@@ -56,6 +56,9 @@ export function createApp(): Hono {
   // after the API routers so /users etc. always hit the API first.
   if (env.NODE_ENV === 'production' && existsSync(WEB_DIST)) {
     app.use('/assets/*', serveStatic({ root: WEB_DIST }));
+    // Vite copies public/* (logo, favicons) to the dist ROOT — serve root-level
+    // files as files; misses fall through to the index.html fallback below.
+    app.use('*', serveStatic({ root: WEB_DIST }));
     app.get('*', serveStatic({ path: `${WEB_DIST}/index.html` }));
   }
 
