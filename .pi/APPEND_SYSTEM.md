@@ -54,3 +54,8 @@
 
 - vite 代理 `/api` 默认 `http://localhost:3000`，本机端口冲突用 `VITE_PROXY_TARGET` 覆盖；生产用 `VITE_API_BASE_URL` 绝对地址
 - UI 组件取自 shadcn base-nova registry 源码，按需适配别名/图标，不手写仿制
+
+## 已知陷阱（踩两次以上）
+
+- commitlint（api/commitlint.config.js）：subject 必须**全小写英文**——含任何大写（如 API、SPA、Logo）会同时触发 subject-case 和 subject-english-only；body 必填，单行必拒。写 subject 前先想好全小写措辞
+- 静态资源验证必须看 **Content-Type** 而不只是状态码：SPA 的 index.html fallback 对任何未匹配路径都返回 200 + text/html，状态码检查会漏检（2026-08-26 logo 被吞事故）
