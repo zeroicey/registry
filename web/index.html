@@ -10,15 +10,15 @@
     <script>
       // Apply the saved theme before first paint to avoid a flash of the wrong
       // scheme. Must stay in sync with next-themes (localStorage key "theme").
-      ;(function () {
+      (function () {
         try {
-          var stored = localStorage.getItem('theme')
+          var stored = localStorage.getItem("theme");
           var dark = stored
-            ? stored === 'dark'
-            : window.matchMedia('(prefers-color-scheme: dark)').matches
-          if (dark) document.documentElement.classList.add('dark')
+            ? stored === "dark"
+            : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (dark) document.documentElement.classList.add("dark");
         } catch (e) {}
-      })()
+      })();
     </script>
   </head>
   <body>

@@ -63,7 +63,12 @@ export function AppNavbar() {
                 <Dialog.Popup className="fixed left-0 top-0 z-50 flex h-dvh w-72 max-w-[80dvw] flex-col gap-4 border-r bg-popover p-4 text-popover-foreground duration-150 outline-none data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-left-full data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-left-full">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 font-semibold">
-                      <img src="/logo.png" alt="" className="size-6 dark:invert" aria-hidden="true" />
+                      <img
+                        src="/logo.png"
+                        alt=""
+                        className="size-6 dark:invert"
+                        aria-hidden="true"
+                      />
                       {env.VITE_APP_NAME}
                     </span>
                     <Dialog.Close
