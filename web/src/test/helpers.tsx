@@ -12,6 +12,10 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 export function stubBackendFetch(): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = urlOf(input);
+    if (url.includes('/api/auth/me')) {
+      // Page-level tests run in the logged-in state.
+      return jsonResponse({ authenticated: true });
+    }
     if (url.includes('/api/attributes')) {
       return jsonResponse({ items: [], total: 0, page: 1, pageSize: 100 });
     }

@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/common/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { env } from '@/config/env';
 import { CollectionSelect } from '@/features/collections';
+import { LogoutButton } from '@/features/auth';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useUIStore } from '@/stores/ui-store';
 
@@ -45,6 +46,7 @@ export function AppNavbar() {
         <div className="flex items-center gap-2">
           <CollectionSelect />
           <ThemeToggle />
+          <LogoutButton />
           {!isDesktop && (
             <Dialog.Root
               open={mobileNavOpen}

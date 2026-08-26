@@ -32,13 +32,29 @@ const SourceFilesPage = lazy(() =>
 const CollectionsPage = lazy(() =>
   import('@/features/collections').then((m) => ({ default: m.CollectionsPage })),
 );
+const LoginPage = lazy(() => import('@/features/auth').then((m) => ({ default: m.LoginPage })));
+const OidcCallbackPage = lazy(() =>
+  import('@/features/auth').then((m) => ({ default: m.OidcCallbackPage })),
+);
+const AuthGuard = lazy(() =>
+  import('@/features/auth').then((m) => ({ default: m.AuthGuard })),
+);
 
 /** Route config — the single place where every route is declared. */
 export const routes: RouteObject[] = [
+  // Auth routes live OUTSIDE the guard (the guard itself redirects here).
+  { path: 'login', element: <LoginPage /> },
+  { path: 'auth/callback', element: <OidcCallbackPage /> },
   {
     path: '/',
-    element: <AppLayout />,
+    // Every business route requires a Pocket-ID session; the guard probes
+    // once on load and bounces to /login when logged out.
+    element: <AuthGuard />,
     children: [
+      {
+        path: '/',
+        element: <AppLayout />,
+        children: [
       // Root redirects to the main scene (no auth wall in v1).
       { index: true, element: <Navigate to="/users" replace /> },
       { path: 'users', element: <UsersPage /> },
@@ -57,6 +73,8 @@ export const routes: RouteObject[] = [
       { path: 'collections', element: <CollectionsPage /> },
       // Fallback: unknown paths render the not-found page inside the layout.
       { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ];
