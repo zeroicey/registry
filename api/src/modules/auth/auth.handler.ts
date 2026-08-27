@@ -35,7 +35,7 @@ export function createAuthHandlers(service: AuthService) {
   return {
     /** GET /api/auth/oidc/url — build the auth-center authorize redirect URL. */
     async oidcAuthorize(c: Context): Promise<Response> {
-      if (!service.isAuthEnabled()) {
+      if (!service.isOidcEnabled()) {
         return Res.error(Msg.SERVICE_UNAVAILABLE, 'SERVICE_UNAVAILABLE').build(c);
       }
       try {
@@ -98,6 +98,15 @@ export function readSessionCookie(c: Context): string | null {
   return null;
 }
 
+/** Extract a presented bearer token from the Authorization header, or null. */
+export function readBearerToken(c: Context): string | null {
+  const header = c.req.header('authorization');
+  if (!header) return null;
+  const match = /^Bearer[ \t]+(.+)$/i.exec(header.trim());
+  const token = match?.[1]?.trim();
+  return token ? token : null;
+}
+
 /**
  * Gate every /api/* route: pass health + auth endpoints through, require a
  * valid session cookie everywhere else. When auth is unconfigured (dev/test)
@@ -105,7 +114,7 @@ export function readSessionCookie(c: Context): string | null {
  */
 export function createAuthMiddleware(service: AuthService): MiddlewareHandler {
   return async (c, next) => {
-    if (!service.isAuthEnabled()) return next();
+    if (!service.isOidcEnabled() && !service.isApiTokenEnabled()) return next();
 
     const path = c.req.path;
     if (path.startsWith('/api/health') || path.startsWith('/api/auth/')) {
@@ -114,6 +123,9 @@ export function createAuthMiddleware(service: AuthService): MiddlewareHandler {
 
     const value = readSessionCookie(c);
     if (value !== null && service.verifySessionCookie(value)) return next();
+
+    const token = readBearerToken(c);
+    if (token !== null && service.verifyApiToken(token)) return next();
 
     return Res.unauthorized(Msg.UNAUTHORIZED).build(c);
   };

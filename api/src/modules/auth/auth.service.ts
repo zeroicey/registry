@@ -6,6 +6,7 @@ import {
   DEFAULT_SESSION_TTL_SECONDS,
   OIDC_STATE_TTL_MS,
   randomToken,
+  secretsEqual,
   signSessionValue,
   verifySessionValue,
 } from './auth.domain';
@@ -35,6 +36,7 @@ export interface AuthConfig {
   oidcIssuer?: string | undefined;
   oidcClientId?: string | undefined;
   oidcClientSecret?: string | undefined;
+  apiToken?: string | undefined;
 }
 
 interface OidcLoginState {
@@ -77,14 +79,19 @@ export class AuthService {
     this.oidc = oidc;
   }
 
-  /** Auth runs only when every required variable is present (dev may skip). */
-  isAuthEnabled(): boolean {
+  /** OIDC login runs only when every required variable is present (dev may skip). */
+  isOidcEnabled(): boolean {
     return Boolean(
       this.config.sessionSecret &&
         this.config.oidcIssuer &&
         this.config.oidcClientId &&
         this.config.oidcClientSecret,
     );
+  }
+
+  /** Machine channel is on only when the shared secret is configured. */
+  isApiTokenEnabled(): boolean {
+    return Boolean(this.config.apiToken);
   }
 
   sessionTtlSeconds(): number {
@@ -95,21 +102,27 @@ export class AuthService {
 
   createSessionCookie(): string {
     const expires = Math.floor(Date.now() / 1000) + this.sessionTtlSeconds();
-    // Callers/middleware gate on isAuthEnabled(), so the secret is always set
+    // Callers/middleware gate on isOidcEnabled(), so the secret is always set
     // on any path that reaches here.
     return signSessionValue(this.config.sessionSecret ?? '', expires);
   }
 
   verifySessionCookie(value: string): boolean {
-    if (!this.isAuthEnabled()) return true; // dev without auth: everything passes
+    if (!this.isOidcEnabled()) return false; // cookie channel is closed without OIDC config
     return verifySessionValue(this.config.sessionSecret ?? '', value, Math.floor(Date.now() / 1000))
       .valid;
+  }
+
+  /** Constant-time comparison of a presented bearer token vs the shared secret. */
+  verifyApiToken(token: string): boolean {
+    if (!this.isApiTokenEnabled()) return false;
+    return secretsEqual(token, this.config.apiToken ?? '');
   }
 
   // ---- OIDC client discovery ------------------------------------------------
 
   private client(): Promise<oidc.Configuration> {
-    if (!this.isAuthEnabled()) {
+    if (!this.isOidcEnabled()) {
       throw new UnauthorizedLoginError('认证未配置，无法进行 OIDC 登录');
     }
     this.clientPromise ??= this.discover();

@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/zeroicey/registry-cli/internal/client"
 )
 
 // healthData mirrors GET /api/health's data payload.
@@ -27,6 +30,13 @@ var healthCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var data healthData
 		if err := apiClient.Get(commandContext(cmd), "/api/health", nil, &data); err != nil {
+			var apiErr *client.APIError
+			if errors.As(err, &apiErr) && apiErr.HTTPStatus == http.StatusUnauthorized {
+				return fmt.Errorf(
+					"健康检查失败（401 未授权）: token 无效或缺失，请运行 `registry config set token <token>` 写入与后端 API_TOKEN 一致的值: %w",
+					err,
+				)
+			}
 			return fmt.Errorf("健康检查失败: %w", err)
 		}
 

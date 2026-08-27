@@ -22,8 +22,9 @@ make test           # 单元测试
 ```
 
 配置优先级：CLI flags > 环境变量（`REGISTRY_BASEURL` / `REGISTRY_TOKEN` / `REGISTRY_CONFIG_DIR`）> 配置文件 > 默认值。
-`token` 字段为鉴权预留：当前后端无鉴权；将来颁发 token 后写入同一文件即可，
-请求会自动带 `Authorization: Bearer` 头。配置文件权限恒为 `0600`，展示一律打码。
+`token` 字段是机器凭证：部署时后端同源生成一份 `API_TOKEN` 写入配置文件，
+请求自动带 `Authorization: Bearer` 头，后端校验通过才放行。配置文件权限恒为
+`0600`，展示一律打码。
 
 ## 命令树
 
@@ -70,7 +71,7 @@ registry
 
 ```yaml
 baseurl: http://localhost:3000
-token: ""    # 鉴权预留字段
+token: ""    # 机器凭证（与后端 API_TOKEN 一致）
 ```
 
 ## 架构

@@ -30,11 +30,11 @@ func SetPath(path string) {
 type Config struct {
 	// BaseURL is the API server address (without trailing slash).
 	BaseURL string `yaml:"baseurl" json:"baseurl"`
-	// Token is reserved for future authentication: the backend currently has
-	// no auth, but when it lands the issued token goes here (sent as
-	// Authorization: Bearer). Stored plaintext locally — the file is chmod
-	// 0600 (see Save) so it is never world-readable. Never output it unmasked
-	// (use cmd's maskToken).
+	// Token is the static machine credential shared with the backend (sent as
+	// `Authorization: Bearer`). It is minted at deploy time and lives only on
+	// hpcore — the backend refuses API requests without it. Stored plaintext
+	// locally — the file is chmod 0600 (see Save) so it is never world-readable.
+	// Never output it unmasked (use cmd's maskToken).
 	Token string `yaml:"token" json:"token,omitempty"`
 }
 

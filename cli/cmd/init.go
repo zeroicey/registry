@@ -51,7 +51,7 @@ var initCmd = &cobra.Command{
 		if flagToken != "" {
 			cfg.Token = flagToken
 		} else {
-			fmt.Fprintf(os.Stderr, "API 令牌（预留，直接回车跳过）[%s]: ", maskToken(cfg.Token))
+			fmt.Fprintf(os.Stderr, "API 令牌（直接回车跳过）[%s]: ", maskToken(cfg.Token))
 			if scanner.Scan() {
 				input := strings.TrimSpace(scanner.Text())
 				if input != "" {

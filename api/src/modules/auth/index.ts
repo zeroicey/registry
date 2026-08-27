@@ -15,6 +15,7 @@ export const authService = new AuthService({
   oidcIssuer: env.OIDC_ISSUER,
   oidcClientId: env.OIDC_CLIENT_ID,
   oidcClientSecret: env.OIDC_CLIENT_SECRET,
+  apiToken: env.API_TOKEN,
 });
 
 export const authHandlers = createAuthHandlers(authService);

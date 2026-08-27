@@ -383,7 +383,8 @@ func (c *Client) url(apiPath string) string {
 func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Set("Accept", "application/json")
 	if c.Token != "" {
-		// Reserved for future authentication; the backend currently ignores it.
+		// Machine credential: the backend verifies this bearer token against
+		// its own API_TOKEN before admitting the request.
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 }

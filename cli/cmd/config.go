@@ -57,7 +57,7 @@ var configSetCmd = &cobra.Command{
 
 支持的 key:
   baseurl  - API 服务地址
-  token    - API 令牌（预留，后端加鉴权后启用）
+  token    - API 令牌（与后端 API_TOKEN 一致的机器凭证）
 
 示例:
   registry config set baseurl http://localhost:3000`,

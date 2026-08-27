@@ -66,12 +66,12 @@ async function loginThrough(
   return `code=abc123&state=${url.searchParams.get('state')}&iss=https%3A%2F%2Fauth.example.test`;
 }
 
-describe('AuthService.isAuthEnabled / session cookie', () => {
-  test('enabled only when all four config values are present', () => {
-    expect(makeService().isAuthEnabled()).toBe(true);
-    expect(new AuthService({}).isAuthEnabled()).toBe(false);
+describe('AuthService.isOidcEnabled / session cookie', () => {
+  test('OIDC enabled only when all four config values are present', () => {
+    expect(makeService().isOidcEnabled()).toBe(true);
+    expect(new AuthService({}).isOidcEnabled()).toBe(false);
     expect(
-      new AuthService({ sessionSecret: SESSION_SECRET, oidcIssuer: 'https://x' }).isAuthEnabled(),
+      new AuthService({ sessionSecret: SESSION_SECRET, oidcIssuer: 'https://x' }).isOidcEnabled(),
     ).toBe(false);
   });
 
@@ -83,6 +83,23 @@ describe('AuthService.isAuthEnabled / session cookie', () => {
     const value = service.createSessionCookie();
     expect(service.verifySessionCookie(value)).toBe(true);
     expect(service.verifySessionCookie('garbage')).toBe(false);
+  });
+});
+
+describe('AuthService.isApiTokenEnabled / verifyApiToken', () => {
+  test('machine channel is off without apiToken', () => {
+    const service = makeService();
+    expect(service.isApiTokenEnabled()).toBe(false);
+    expect(service.verifyApiToken('anything')).toBe(false);
+  });
+
+  test('constant-time comparison accepts only the exact token', () => {
+    const token = 'k'.repeat(48);
+    const service = new AuthService({ apiToken: token }, fakeOidc);
+    expect(service.isApiTokenEnabled()).toBe(true);
+    expect(service.verifyApiToken(token)).toBe(true);
+    expect(service.verifyApiToken(`${token}x`)).toBe(false);
+    expect(service.verifyApiToken('')).toBe(false);
   });
 });
 
