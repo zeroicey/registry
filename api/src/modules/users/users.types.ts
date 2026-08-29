@@ -52,8 +52,12 @@ export interface PaginatedResult<T> {
   pageSize: number;
 }
 
-/** Resolved attribute filter for the list endpoint. */
+/**
+ * Resolved attribute filter for the list endpoint. One business key can map to
+ * several attribute definitions (e.g. `phone`/`gender` exist per collection),
+ * so a filter matches the value against ANY of those ids (OR semantics).
+ */
 export interface AttributeFilter {
-  attributeId: number;
+  attributeIds: number[];
   value: unknown;
 }

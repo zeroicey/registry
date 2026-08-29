@@ -50,8 +50,13 @@ export const listUsersQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
     pageSize: z.coerce.number().int().min(1).max(100).default(20),
-    /** Fuzzy match on real_name / code. */
-    search: z.string().min(1).max(100).optional(),
+    /** Fuzzy match on real_name / code; an empty string is treated as absent.
+     *  (The SPA historically sent `search=` on every filtered request, which
+     *  failed `.min(1)` and surfaced as a 400 — see the empty-search fix.) */
+    search: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).max(100).optional(),
+    ),
     /** true=has a national id (users.code NOT NULL), false=does not (IS NULL). */
     hasCode: z.enum(['true', 'false']).optional(),
     /** 只列某个名录的成员。 */

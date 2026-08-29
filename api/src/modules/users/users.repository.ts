@@ -1,4 +1,16 @@
-import { and, count, eq, ilike, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm';
 import { db } from '@/db/connection';
 import {
   attributeValueHistory,
@@ -124,10 +136,23 @@ export class DrizzleUserRepository implements UserRepository {
         sql`exists (select 1 from collection_members cm where cm.user_id = ${users.id} and cm.collection_id = ${options.collectionId})`,
       );
     }
-    // Exact JSON match against attribute_values — uses the attribute_id index.
+    // Exact JSON match against attribute_values. Each filter carries one or
+    // more attribute ids (a key like `phone`/`gender` exists per collection),
+    // so a user matches when ANY id holds the value (OR across ids).
     for (const f of options.attributeFilters ?? []) {
       conditions.push(
-        sql`exists (select 1 from attribute_values av where av.user_id = ${users.id} and av.attribute_id = ${f.attributeId} and av.value = ${JSON.stringify(f.value)}::jsonb)`,
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(attributeValues)
+            .where(
+              and(
+                eq(attributeValues.userId, users.id),
+                inArray(attributeValues.attributeId, f.attributeIds),
+                sql`${attributeValues.value} = ${JSON.stringify(f.value)}::jsonb`,
+              ),
+            ),
+        ),
       );
     }
     const where = and(...conditions);

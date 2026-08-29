@@ -185,11 +185,10 @@ export class UserService {
           message: `unknown attribute filter: ${key}`,
         });
       }
-      if (found.length > 1) {
-        throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
-          message: `attribute filter "${key}" is ambiguous across collections; filter within a collection`,
-        });
-      }
+      // The same key can resolve to multiple attribute ids (e.g. `phone` or
+      // `gender` are defined per collection). Normalize the raw value once —
+      // same key implies same type — then match against ANY id (OR), so a
+      // cross-collection filter still finds the person.
       const attr = found[0];
       if (!attr) {
         throw new AppError('BAD_REQUEST', Msg.BAD_REQUEST, 400, {
@@ -225,7 +224,7 @@ export class UserService {
           // string / select / date stay as raw strings.
           break;
       }
-      filters.push({ attributeId: attr.id, value: normalized });
+      filters.push({ attributeIds: found.map((a) => a.id), value: normalized });
     }
     return filters;
   }

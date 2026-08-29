@@ -320,7 +320,7 @@ describe('UserService', () => {
     const result = await service.list({ page: 1, pageSize: 20, gender: '男' });
     expect(result.total).toBe(0);
     // select filter stays a raw string
-    expect(listFilters[0]).toEqual([{ attributeId: 2, value: '男' }]);
+    expect(listFilters[0]).toEqual([{ attributeIds: [2], value: '男' }]);
 
     await expect(service.list({ page: 1, pageSize: 20, bogus: 'x' })).rejects.toMatchObject({
       code: 'BAD_REQUEST',
@@ -331,12 +331,29 @@ describe('UserService', () => {
     const { service, listFilters } = makeFakes();
     await service.list({ page: 1, pageSize: 20, age: '25', active: 'true' });
     expect(listFilters[0]).toEqual([
-      { attributeId: 1, value: 25 }, // number: string → JSON number
-      { attributeId: 3, value: true }, // bool: "true" → true
+      { attributeIds: [1], value: 25 }, // number: string → JSON number
+      { attributeIds: [3], value: true }, // bool: "true" → true
     ]);
 
     await service.list({ page: 1, pageSize: 20, active: 'false' });
-    expect(listFilters[1]).toEqual([{ attributeId: 3, value: false }]);
+    expect(listFilters[1]).toEqual([{ attributeIds: [3], value: false }]);
+  });
+
+  test('list resolves a cross-collection key to multiple ids (OR semantics)', async () => {
+    const { service, attrsStore, listFilters } = makeFakes();
+    // 同名 `gender` 在名录 1 下重复定义（学生名录也定义了性别）→ 不带 collectionId 时
+    // 不再报 ambiguous，而是 OR 匹配两个 attribute_id。
+    attrsStore.set(
+      4,
+      makeAttribute(4, {
+        key: 'gender',
+        type: 'select',
+        config: { options: ['男', '女'] },
+        collectionId: 1,
+      }),
+    );
+    await service.list({ page: 1, pageSize: 20, gender: '男' });
+    expect(listFilters[0]).toEqual([{ attributeIds: [2, 4], value: '男' }]);
   });
 
   test('list rejects malformed number and bool filter values', async () => {

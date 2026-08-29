@@ -14,7 +14,9 @@ function listQuery(params: ListUsersParams): QueryParams {
   const query: QueryParams = {
     page: params.page,
     pageSize: params.pageSize,
-    search: params.search,
+    // Empty search is never sent as `search=` — the backend treats an empty
+    // string as absent, and sending it caused a 400 (min(1) validation).
+    search: params.search || undefined,
     collectionId: params.collectionId,
   };
   // Filters carry both attribute keys and the special `hasCode` presence
