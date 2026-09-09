@@ -67,6 +67,44 @@ function DialogContent({
   );
 }
 
+/**
+ * Bottom sheet surface — slides up from the bottom edge (mobile-friendly),
+ * used by the add-filter panel etc. Shares the dialog overlay/portal.
+ */
+function SheetContent({
+  className,
+  children,
+  showCloseButton = true,
+  ...props
+}: DialogPrimitive.Popup.Props & {
+  showCloseButton?: boolean;
+}) {
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Popup
+        data-slot="sheet-content"
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] w-full overflow-y-auto rounded-t-2xl bg-popover p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-5 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-5',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        {showCloseButton && (
+          <DialogPrimitive.Close
+            data-slot="sheet-close"
+            render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
+          >
+            <XIcon className="size-4" />
+            <span className="sr-only">关闭</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Popup>
+    </DialogPortal>
+  );
+}
+
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />
@@ -132,4 +170,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  SheetContent,
 };

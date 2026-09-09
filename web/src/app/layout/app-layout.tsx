@@ -8,7 +8,7 @@ export function AppLayout() {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <AppNavbar />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-8">
         <Suspense fallback={<PageLoading />}>
           <Outlet />
         </Suspense>

@@ -45,7 +45,7 @@ export function AttributesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">自定义属性</h1>
           <p className="text-sm text-muted-foreground">

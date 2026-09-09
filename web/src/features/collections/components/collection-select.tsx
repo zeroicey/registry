@@ -29,9 +29,11 @@ export function CollectionSelect() {
 
   return (
     <SelectRoot value={value} onValueChange={(v) => setScope(valueToScope(v as string))}>
-      <SelectTrigger aria-label="选择名录" className="w-40">
+      <SelectTrigger aria-label="选择名录" className="md:w-40">
         <FolderIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-        <SelectValue placeholder="选择名录">{selectedName}</SelectValue>
+        <SelectValue placeholder="选择名录" className="hidden md:block">
+          {selectedName}
+        </SelectValue>
       </SelectTrigger>
       <SelectPopup>
         <SelectGroup>

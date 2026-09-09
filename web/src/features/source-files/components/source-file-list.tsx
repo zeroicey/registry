@@ -164,7 +164,7 @@ export function SourceFileList({
       </Table>
 
       {total > 0 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>共 {total} 个数据文件</span>
           <div className="flex items-center gap-3">
             <Button

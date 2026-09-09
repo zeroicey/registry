@@ -1,4 +1,4 @@
-import { SearchIcon, UsersIcon, XIcon } from 'lucide-react';
+import { PlusIcon, SearchIcon, UsersIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { PageLoading } from '@/app/layout/page-loading';
@@ -11,10 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { useAttributeDefs } from '@/features/attributes/queries';
 import { scopeToCollectionId, useCollectionStore } from '@/stores/collection-store';
-import { UserFilterBar } from '../components/user-filter-bar';
+import { FilterChips, FilterDialog } from '../components/user-filter-bar';
 import { UsersTable } from '../components/users-table';
 import { useDeleteUser, useUsers } from '../queries';
 import type { AttributeFilterValue, UserSummaryDto } from '../types';
@@ -72,6 +71,7 @@ export function UsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<AttributeFilterValue[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [deleting, setDeleting] = useState<UserSummaryDto>();
 
@@ -124,7 +124,7 @@ export function UsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">人员</h1>
           <p className="text-sm text-muted-foreground">登记与查询人员档案。</p>
@@ -135,32 +135,52 @@ export function UsersPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="relative max-w-sm">
-          <SearchIcon
-            className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="搜索姓名 / 身份证号"
-            className="pr-8 pl-8"
-            aria-label="搜索姓名或身份证号"
-          />
-          {searchInput !== '' && (
+      <div className="flex w-full flex-col gap-2 md:max-w-2xl">
+        <div className="flex flex-col gap-2 rounded-xl border border-input bg-transparent px-3 py-2 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
+          <div className="flex items-center gap-2">
+            <SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="搜索姓名 / 身份证号"
+              enterKeyHint="search"
+              aria-label="搜索姓名或身份证号"
+              className="h-10 min-w-0 flex-1 border-0 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+            />
+            {searchInput !== '' && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="清除搜索"
+                onClick={() => setSearchInput('')}
+              >
+                <XIcon className="size-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
-              aria-label="清除搜索"
-              className="absolute top-1/2 right-1 size-6 -translate-y-1/2"
-              onClick={() => setSearchInput('')}
+              aria-label="添加筛选"
+              title="添加筛选"
+              onClick={() => setFilterOpen(true)}
             >
-              <XIcon className="size-3.5" />
+              <PlusIcon className="size-4" aria-hidden="true" />
             </Button>
-          )}
+          </div>
+          <FilterChips
+            defs={defs ?? []}
+            filters={filters}
+            onRemove={(key) => changeFilters(filters.filter((f) => f.key !== key))}
+            onClearAll={() => changeFilters([])}
+          />
         </div>
-        <UserFilterBar defs={defs ?? []} filters={filters} onChange={changeFilters} />
+        <FilterDialog
+          open={filterOpen}
+          onOpenChange={setFilterOpen}
+          defs={defs ?? []}
+          existingKeys={filters.map((f) => f.key)}
+          onConfirm={(filter) => changeFilters([...filters, filter])}
+        />
       </div>
 
       {!active ? (
@@ -176,7 +196,7 @@ export function UsersPage() {
           <div className="rounded-lg border bg-card">
             <UsersTable users={data?.items ?? []} onDetail={openDetail} onDelete={setDeleting} />
           </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <span>共 {data?.total ?? 0} 人</span>
               <Button variant="ghost" size="sm" onClick={clearAll}>

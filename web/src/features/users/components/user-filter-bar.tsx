@@ -1,4 +1,4 @@
-import { PlusIcon, XIcon } from 'lucide-react';
+import { XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,6 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  SheetContent,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import type { AttributeDef } from '@/types/attribute';
 import type { AttributeFilterValue } from '../types';
 
@@ -36,35 +38,38 @@ const HAS_CODE_OPTIONS = [
 
 export const HAS_CODE_KEY = 'hasCode';
 
-interface UserFilterBarProps {
+/** Human-readable chip text: hasCode → 有/无, bool → 是/否, others verbatim. */
+function formatFilterValue(def: AttributeDef | undefined, key: string, value: string): string {
+  if (key === HAS_CODE_KEY) return value === 'true' ? '有' : '无';
+  if (def?.type === 'bool') return value === 'true' ? '是' : '否';
+  return value;
+}
+
+interface FilterChipsProps {
   /** Active attribute definitions (from useAttributeDefs). */
   defs: AttributeDef[];
   /** Currently applied filters. */
   filters: AttributeFilterValue[];
-  onChange: (filters: AttributeFilterValue[]) => void;
+  onRemove: (key: string) => void;
+  onClearAll: () => void;
 }
 
-/** Filter chips bar + add-filter dialog. Renders a value control per attribute type. */
-export function UserFilterBar({ defs, filters, onChange }: UserFilterBarProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const removeFilter = (key: string) => onChange(filters.filter((f) => f.key !== key));
-  const clearAll = () => onChange([]);
+/**
+ * Applied filter chips — rendered inline inside the search box (as tags),
+ * each removable, with a trailing "clear all" when non-empty.
+ */
+export function FilterChips({ defs, filters, onRemove, onClearAll }: FilterChipsProps) {
+  if (filters.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
-        <PlusIcon className="size-3.5" />
-        添加筛选
-      </Button>
-
+    <div className="flex flex-wrap items-center gap-1.5">
       {filters.map((filter) => {
         const def = defs.find((d) => d.key === filter.key);
         const label = filter.key === HAS_CODE_KEY ? '身份证号' : (def?.label ?? filter.key);
         return (
           <span
             key={filter.key}
-            className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 py-1 pr-1 pl-3 text-sm"
+            className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 py-1 pr-1 pl-2.5 text-xs sm:text-sm"
           >
             <span className="text-muted-foreground">{label}</span>
             <span className="font-medium">{formatFilterValue(def, filter.key, filter.value)}</span>
@@ -72,36 +77,18 @@ export function UserFilterBar({ defs, filters, onChange }: UserFilterBarProps) {
               variant="ghost"
               size="icon-xs"
               aria-label={`移除 ${label} 筛选`}
-              onClick={() => removeFilter(filter.key)}
+              onClick={() => onRemove(filter.key)}
             >
               <XIcon className="size-3" />
             </Button>
           </span>
         );
       })}
-
-      {filters.length > 0 && (
-        <Button variant="link" size="sm" onClick={clearAll}>
-          清除全部
-        </Button>
-      )}
-
-      <FilterDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        defs={defs}
-        existingKeys={filters.map((f) => f.key)}
-        onConfirm={(filter) => onChange([...filters, filter])}
-      />
+      <Button variant="link" size="sm" onClick={onClearAll}>
+        清除全部
+      </Button>
     </div>
   );
-}
-
-/** Human-readable chip text: hasCode → 有/无, bool → 是/否, others verbatim. */
-function formatFilterValue(def: AttributeDef | undefined, key: string, value: string): string {
-  if (key === HAS_CODE_KEY) return value === 'true' ? '有' : '无';
-  if (def?.type === 'bool') return value === 'true' ? '是' : '否';
-  return value;
 }
 
 interface FilterDialogProps {
@@ -113,12 +100,23 @@ interface FilterDialogProps {
   onConfirm: (filter: AttributeFilterValue) => void;
 }
 
-function FilterDialog({ open, onOpenChange, defs, existingKeys, onConfirm }: FilterDialogProps) {
+/**
+ * Add-filter panel: centered dialog on desktop, bottom sheet on mobile.
+ * Renders a value control per attribute type.
+ */
+export function FilterDialog({
+  open,
+  onOpenChange,
+  defs,
+  existingKeys,
+  onConfirm,
+}: FilterDialogProps) {
+  const isDesktop = useMediaQuery('(min-width: 640px)');
   const available = defs.filter((d) => !existingKeys.includes(d.key));
   const hasCodeAvailable = !existingKeys.includes(HAS_CODE_KEY);
 
-  const [key, setKey] = useState<string>('');
-  const [value, setValue] = useState<string>('');
+  const [key, setKey] = useState('');
+  const [value, setValue] = useState('');
 
   const selectedDef = defs.find((d) => d.key === key);
   const isHasCode = key === HAS_CODE_KEY;
@@ -135,6 +133,84 @@ function FilterDialog({ open, onOpenChange, defs, existingKeys, onConfirm }: Fil
     onOpenChange(false);
   };
 
+  const fields = (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <Label>筛选条件</Label>
+        {available.length === 0 && !hasCodeAvailable ? (
+          <p className="text-sm text-muted-foreground">没有可添加的筛选条件。</p>
+        ) : (
+          <SelectRoot value={key} onValueChange={(v) => setKey(v as string)}>
+            <SelectTrigger>
+              <SelectValue placeholder="选择条件" />
+            </SelectTrigger>
+            <SelectPopup>
+              {available.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>属性</SelectLabel>
+                  {available.map((def) => (
+                    <SelectItem key={def.key} value={def.key}>
+                      {def.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              {hasCodeAvailable && (
+                <SelectGroup>
+                  <SelectLabel>特殊</SelectLabel>
+                  <SelectItem value={HAS_CODE_KEY}>身份证号</SelectItem>
+                </SelectGroup>
+              )}
+            </SelectPopup>
+          </SelectRoot>
+        )}
+      </div>
+
+      {isHasCode && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="filter-value">值</Label>
+          <SelectRoot value={value} onValueChange={(v) => setValue(v as string)}>
+            <SelectTrigger id="filter-value">
+              <SelectValue placeholder="选择" />
+            </SelectTrigger>
+            <SelectPopup>
+              {HAS_CODE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectPopup>
+          </SelectRoot>
+        </div>
+      )}
+
+      {selectedDef && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="filter-value">值</Label>
+          {renderValueControl(selectedDef, value, setValue)}
+        </div>
+      )}
+    </div>
+  );
+
+  const footer = (
+    <>
+      <Button variant="outline" onClick={() => onOpenChange(false)}>
+        取消
+      </Button>
+      <Button disabled={(!selectedDef && !isHasCode) || value.trim() === ''} onClick={confirm}>
+        确定
+      </Button>
+    </>
+  );
+
+  const header = (
+    <DialogHeader>
+      <DialogTitle>添加筛选</DialogTitle>
+      <DialogDescription>按属性值精确过滤人员，可叠加多个筛选条件。</DialogDescription>
+    </DialogHeader>
+  );
+
   return (
     <Dialog
       open={open}
@@ -143,79 +219,19 @@ function FilterDialog({ open, onOpenChange, defs, existingKeys, onConfirm }: Fil
         onOpenChange(next);
       }}
     >
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>添加筛选</DialogTitle>
-          <DialogDescription>按属性值精确过滤人员，可叠加多个筛选条件。</DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>筛选条件</Label>
-            {available.length === 0 && !hasCodeAvailable ? (
-              <p className="text-sm text-muted-foreground">没有可添加的筛选条件。</p>
-            ) : (
-              <SelectRoot value={key} onValueChange={(v) => setKey(v as string)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择条件" />
-                </SelectTrigger>
-                <SelectPopup>
-                  {available.length > 0 && (
-                    <SelectGroup>
-                      <SelectLabel>属性</SelectLabel>
-                      {available.map((def) => (
-                        <SelectItem key={def.key} value={def.key}>
-                          {def.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  )}
-                  {hasCodeAvailable && (
-                    <SelectGroup>
-                      <SelectLabel>特殊</SelectLabel>
-                      <SelectItem value={HAS_CODE_KEY}>身份证号</SelectItem>
-                    </SelectGroup>
-                  )}
-                </SelectPopup>
-              </SelectRoot>
-            )}
-          </div>
-
-          {isHasCode && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="filter-value">值</Label>
-              <SelectRoot value={value} onValueChange={(v) => setValue(v as string)}>
-                <SelectTrigger id="filter-value">
-                  <SelectValue placeholder="选择" />
-                </SelectTrigger>
-                <SelectPopup>
-                  {HAS_CODE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectPopup>
-              </SelectRoot>
-            </div>
-          )}
-
-          {selectedDef && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="filter-value">值</Label>
-              {renderValueControl(selectedDef, value, setValue)}
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-          <Button disabled={(!selectedDef && !isHasCode) || value.trim() === ''} onClick={confirm}>
-            确定
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+      {isDesktop ? (
+        <DialogContent className="sm:max-w-sm">
+          {header}
+          {fields}
+          <DialogFooter>{footer}</DialogFooter>
+        </DialogContent>
+      ) : (
+        <SheetContent>
+          {header}
+          {fields}
+          <DialogFooter>{footer}</DialogFooter>
+        </SheetContent>
+      )}
     </Dialog>
   );
 }

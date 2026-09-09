@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import type { AttributeDef } from '@/types/attribute';
-import { UserFilterBar } from './user-filter-bar';
+import { FilterChips, FilterDialog } from './user-filter-bar';
 
 const DEFS: AttributeDef[] = [
   {
@@ -17,14 +17,20 @@ const DEFS: AttributeDef[] = [
   },
 ];
 
-describe('UserFilterBar', () => {
+describe('FilterDialog', () => {
   it('offers the special national-id filter and emits hasCode on confirm', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
-    render(<UserFilterBar defs={DEFS} filters={[]} onChange={onChange} />);
-
-    // Open the add-filter dialog.
-    await user.click(screen.getByRole('button', { name: /添加筛选/ }));
+    const onConfirm = vi.fn();
+    const onOpenChange = vi.fn();
+    render(
+      <FilterDialog
+        open
+        onOpenChange={onOpenChange}
+        defs={DEFS}
+        existingKeys={[]}
+        onConfirm={onConfirm}
+      />,
+    );
 
     // Expand the condition picker and choose the special 身份证号 entry.
     await user.click(screen.getByText('选择条件'));
@@ -37,17 +43,20 @@ describe('UserFilterBar', () => {
     await user.click(screen.getByRole('option', { name: '有身份证号' }));
     await user.click(screen.getByRole('button', { name: /确定/ }));
 
-    expect(onChange).toHaveBeenCalledWith([{ key: 'hasCode', value: 'true' }]);
+    expect(onConfirm).toHaveBeenCalledWith({ key: 'hasCode', value: 'true' });
   });
+});
 
-  it('renders a hasCode chip as 身份证号 · 有 and removes it', async () => {
+describe('FilterChips', () => {
+  it('renders a hasCode chip as 身份证号 · 无 and removes it', async () => {
     const user = userEvent.setup();
-    const onChange = vi.fn();
+    const onRemove = vi.fn();
     render(
-      <UserFilterBar
+      <FilterChips
         defs={DEFS}
         filters={[{ key: 'hasCode', value: 'false' }]}
-        onChange={onChange}
+        onRemove={onRemove}
+        onClearAll={vi.fn()}
       />,
     );
 
@@ -55,6 +64,6 @@ describe('UserFilterBar', () => {
     expect(screen.getByText('无')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /移除 身份证号 筛选/ }));
-    expect(onChange).toHaveBeenCalledWith([]);
+    expect(onRemove).toHaveBeenCalledWith('hasCode');
   });
 });
