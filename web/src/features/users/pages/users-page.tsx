@@ -1,6 +1,6 @@
 import { PlusIcon, SearchIcon, UsersIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { PageLoading } from '@/app/layout/page-loading';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,28 @@ import { useDeleteUser, useUsers } from '../queries';
 import type { AttributeFilterValue, UserSummaryDto } from '../types';
 
 const PAGE_SIZE = 20;
+
+/** 列表场景里持久化到 URL 的保留键；其余 query 参数都视为属性筛选。 */
+const LIST_SCENE_KEYS = new Set<string>(['search', 'page']);
+
+interface ListScene {
+  search: string;
+  page: number;
+  filters: AttributeFilterValue[];
+}
+
+/** 从 URL query 恢复列表场景（搜索词 + 筛选 + 页码）。 */
+export function parseListScene(searchParams: URLSearchParams): ListScene {
+  const search = searchParams.get('search') ?? '';
+  const rawPage = Number(searchParams.get('page'));
+  const page = Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1;
+  const filters: AttributeFilterValue[] = [];
+  for (const [key, value] of searchParams.entries()) {
+    if (LIST_SCENE_KEYS.has(key)) continue;
+    filters.push({ key, value });
+  }
+  return { search, page, filters };
+}
 
 /** 初始引导空态：尚未发起任何查询时展示。 */
 function IdleNotice() {
@@ -64,25 +86,42 @@ function EmptyResult({ onClear }: { onClear: () => void }) {
  */
 export function UsersPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const scope = useCollectionStore((s) => s.scope);
   const collectionId = scopeToCollectionId(scope);
   const { data: defs } = useAttributeDefs(scope);
 
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<AttributeFilterValue[]>([]);
+  // 从 URL 恢复搜索场景（搜索词 + 筛选 + 页码），使「返回列表」或浏览器后退
+  // 后查询条件与结果都能保留。
+  const [{ search: initialSearch, page: initialPage, filters: initialFilters }] = useState(() =>
+    parseListScene(searchParams),
+  );
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
+  const [filters, setFilters] = useState<AttributeFilterValue[]>(initialFilters);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [deleting, setDeleting] = useState<UserSummaryDto>();
 
-  // 实时搜索：停止输入 300ms 后生效并回到第一页。
+  // 实时搜索：停止输入 300ms 后生效；仅当搜索词真的变化时才回到第一页
+  // （挂载时从 URL 恢复的 search 与 searchInput 一致，不会误重置页码）。
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
+      const next = searchInput.trim();
+      setSearch(next);
+      if (next !== search) setPage(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, search]);
+
+  // 把搜索/筛选/页码同步回 URL（replace，避免每次改动都叠加一条历史记录）。
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (search !== '') next.set('search', search);
+    if (page > 1) next.set('page', String(page));
+    for (const filter of filters) next.set(filter.key, filter.value);
+    setSearchParams(next, { replace: true });
+  }, [search, filters, page, setSearchParams]);
 
   // 有任一条件才请求；条件全清空自动回到引导态（不显示全量）。
   const active = search !== '' || filters.length > 0;

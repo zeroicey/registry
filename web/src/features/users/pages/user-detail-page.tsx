@@ -1,4 +1,4 @@
-import { PencilIcon, Trash2Icon } from 'lucide-react';
+import { ArrowLeftIcon, PencilIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useParams } from 'react-router';
 import { PageLoading } from '@/app/layout/page-loading';
@@ -47,6 +47,13 @@ export function UserDetailPage() {
     });
   };
 
+  // 有浏览器历史时后退（回到带查询参数的列表页，保留搜索/筛选/页码），
+  // 直接打开详情页无历史时退回列表首页。
+  const goBack = () => {
+    if (window.history.state?.idx > 0) navigate(-1);
+    else navigate('/users');
+  };
+
   if (isLoading) return <PageLoading />;
   if (isError || !user) {
     return (
@@ -63,6 +70,16 @@ export function UserDetailPage() {
     <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b">
         <div className="flex min-w-0 items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="返回列表"
+            onClick={goBack}
+            className="-ml-2 shrink-0"
+          >
+            <ArrowLeftIcon className="size-4" />
+            返回
+          </Button>
           <h1 className="text-xl font-semibold tracking-tight">{user.realName}</h1>
           <nav aria-label="人员详情页签" className="flex gap-0.5 self-stretch">
             {TAB_LINKS.map((tab) => (
