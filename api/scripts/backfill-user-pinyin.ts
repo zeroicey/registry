@@ -1,18 +1,18 @@
 #!/usr/bin/env bun
-import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { users } from '../src/db/schema';
 import { toPinyinColumns } from '../src/modules/users/users.pinyin';
 
 /**
  * 回填脚本：为存量 users 计算并写入 pinyin / pinyin_initial 派生列。
  *
- * 用法（在 api 目录下）：
+ * 用法（在 api 目录下，需 DATABASE_URL 指向目标库）：
  *   bun scripts/backfill-user-pinyin.ts
  *
- * 幂等：遍历全部 users（含软删除），逐条计算拼音；仅当当前值不一致时才
- * UPDATE，重复执行结果不变。迁移上线后由部署流程执行一次。
+ * 幂等：无条件重算全量姓名拼音，但 UPDATE 带 `IS DISTINCT FROM` 条件，
+ * 只写值变化的行 —— 首次回填写全部，重复执行零写入，结果一致。
+ *
+ * 批量：一次性 SELECT 全量后按块 unnest UPDATE（每块 2000 行），避免
+ * 逐条往返在跨隧道/远程库上的延迟。
  *
  * 只依赖 DATABASE_URL —— 故意不 import @/env（完整 env 校验会因缺少
  * SESSION_SECRET 等而崩溃）。
@@ -25,38 +25,38 @@ if (!DATABASE_URL) {
 }
 
 const client = postgres(DATABASE_URL, { max: 1 });
-const db = drizzle(client, { schema: { users } });
 
-const rows = await db.select({ id: users.id, realName: users.realName }).from(users);
-
-console.log(`共 ${rows.length} 名人员，开始计算拼音…`);
-
-let updated = 0;
-let unchanged = 0;
-
-for (const [index, row] of rows.entries()) {
-  const { pinyin, pinyinInitial } = toPinyinColumns(row.realName);
-  const [current] = await db
-    .select({ pinyin: users.pinyin, pinyinInitial: users.pinyinInitial })
-    .from(users)
-    .where(eq(users.id, row.id));
-
-  if (current && current.pinyin === pinyin && current.pinyinInitial === pinyinInitial) {
-    unchanged += 1;
-  } else {
-    await db.update(users).set({ pinyin, pinyinInitial }).where(eq(users.id, row.id));
-    updated += 1;
-  }
-
-  if ((index + 1) % 100 === 0 || index + 1 === rows.length) {
-    console.log(`进度：${index + 1}/${rows.length}`);
-  }
-}
+type UserRow = { id: string; realName: string };
+const rows = await client<UserRow[]>`SELECT id, real_name AS "realName" FROM users`;
 
 if (rows.length === 0) {
   console.log('无存量人员，无需回填。');
-} else {
-  console.log(`回填完成：共处理 ${rows.length} 名，更新 ${updated} 条，未变化 ${unchanged} 条。`);
+  await client.end();
+  process.exit(0);
 }
 
+console.log(`共 ${rows.length} 名人员，开始计算拼音…`);
+
+const CHUNK = 2000;
+const total = rows.length;
+for (let i = 0; i < total; i += CHUNK) {
+  const slice = rows.slice(i, i + CHUNK);
+  const ids = slice.map((r) => Number(r.id));
+  const pinyin = slice.map((r) => toPinyinColumns(r.realName).pinyin);
+  const pinyinInitial = slice.map((r) => toPinyinColumns(r.realName).pinyinInitial);
+  await client`
+    UPDATE users u
+    SET pinyin = d.pinyin, pinyin_initial = d.pinyin_initial
+    FROM unnest(
+      ${ids}::bigint[],
+      ${pinyin}::text[],
+      ${pinyinInitial}::text[]
+    ) AS d(id, pinyin, pinyin_initial)
+    WHERE u.id = d.id
+      AND (u.pinyin IS DISTINCT FROM d.pinyin OR u.pinyin_initial IS DISTINCT FROM d.pinyin_initial)
+  `;
+  console.log(`进度：${Math.min(i + CHUNK, total)}/${total}`);
+}
+
+console.log(`回填完成：共处理 ${total} 名。`);
 await client.end();
