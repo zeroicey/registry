@@ -16,6 +16,8 @@ function makeUser(id: number, overrides: Partial<User> = {}): User {
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
+    pinyin: null,
+    pinyinInitial: null,
     ...overrides,
   };
 }

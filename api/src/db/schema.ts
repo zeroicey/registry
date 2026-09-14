@@ -72,6 +72,10 @@ export const users = pgTable(
   {
     id: bigint({ mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
     realName: text('real_name').notNull(),
+    /** 派生检索列：realName 的全拼（wangbo），内部用，不进 API 响应。 */
+    pinyin: text('pinyin'),
+    /** 派生检索列：realName 的拼音首字母（wb），内部用，不进 API 响应。 */
+    pinyinInitial: text('pinyin_initial'),
     /** National id — nullable, unique when set. */
     code: text('code'),
     /** Provenance: manual (UI/API) or file (imported from a source_file). */

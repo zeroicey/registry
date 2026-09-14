@@ -43,6 +43,13 @@
       "when": 1786982357960,
       "tag": "0005_silky_romulus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789365620905,
+      "tag": "0006_public_dracula",
+      "breakpoints": true
     }
   ]
 }

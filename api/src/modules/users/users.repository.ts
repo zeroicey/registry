@@ -123,7 +123,12 @@ export class DrizzleUserRepository implements UserRepository {
     const conditions: SQL[] = [isNull(users.deletedAt)];
     if (options.search) {
       const pattern = `%${options.search}%`;
-      const searchCondition = or(ilike(users.realName, pattern), ilike(users.code, pattern));
+      const searchCondition = or(
+        ilike(users.realName, pattern),
+        ilike(users.code, pattern),
+        ilike(users.pinyin, pattern),
+        ilike(users.pinyinInitial, pattern),
+      );
       if (searchCondition) conditions.push(searchCondition);
     }
     if (options.codeNull === true) {

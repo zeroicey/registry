@@ -9,6 +9,7 @@ import {
 import { AppError } from '@/shared/errors';
 import { Msg } from '@/shared/messages';
 import { type ProfileRepository, profileRepository } from './profile.repository';
+import { toPinyinColumns } from './users.pinyin';
 import { type UserRepository, userRepository } from './users.repository';
 import { RESERVED_USER_QUERY_KEYS } from './users.schema';
 import type {
@@ -38,7 +39,7 @@ export class UserService {
     }
     const entries = await this.validateProfileEntries(input.profiles ?? {}, collectionId ?? null);
     const user = await this.users.createWithProfile(
-      { realName: input.realName, code: input.code ?? null },
+      { realName: input.realName, code: input.code ?? null, ...toPinyinColumns(input.realName) },
       entries,
       collectionId,
     );
@@ -74,7 +75,9 @@ export class UserService {
 
   async update(id: number, input: UpdateUserInput): Promise<UserDto> {
     const updated = await this.users.update(id, {
-      ...(input.realName !== undefined ? { realName: input.realName } : {}),
+      ...(input.realName !== undefined
+        ? { realName: input.realName, ...toPinyinColumns(input.realName) }
+        : {}),
       ...(input.code !== undefined ? { code: input.code } : {}),
     });
     if (!updated) throw new AppError('USER_NOT_FOUND', Msg.USER_NOT_FOUND);
