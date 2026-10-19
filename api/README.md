@@ -176,9 +176,17 @@ Build (behind a restricted network, pass proxy build-args for `bun install`):
 
 ```bash
 docker build -t registry-api:latest . \
-  --build-arg HTTP_PROXY=http://host.docker.internal:7897 \
-  --build-arg HTTPS_PROXY=http://host.docker.internal:7897
+  --build-arg HTTP_PROXY=http://172.80.0.1:7890 \
+  --build-arg HTTPS_PROXY=http://172.80.0.1:7890 \
+  --build-arg http_proxy=http://172.80.0.1:7890 \
+  --build-arg https_proxy=http://172.80.0.1:7890
 ```
+
+> ⚠️ hpcore 专属坑：mihomo TUN 的 fake-IP DNS 会把 `host.docker.internal`
+> 解析成 198.18.x.x，容器内连不上宿主机代理 —— 必须用 docker0 网关
+> `172.80.0.1:7890`。且代理 build-arg 要**大小写各传一份**：bun 认大写
+> `HTTP_PROXY`，apt 只认小写 `http_proxy`（缺小写则 `apt-get update` 连不上
+> deb.debian.org 直接失败）。
 
 Run:
 
